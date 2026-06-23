@@ -4,8 +4,8 @@
 param location string
 param tags object
 param appName string
-@description('Name of the Flex Consumption plan to create for THIS app. Flex '
-  + 'Consumption allows exactly one site per plan, so each app gets its own.')
+// Flex Consumption allows exactly one site per plan, so each app gets its own.
+@description('Name of the Flex Consumption plan to create for this app.')
 param planName string
 param storageAccountName string
 param blobEndpoint string
