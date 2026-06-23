@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
+import urllib.error
 import urllib.request
 
 import azure.functions as func
@@ -63,19 +65,51 @@ def _save_json_blob(container: str, name: str, obj) -> None:
 
 # --- A2A HTTP transport --------------------------------------------------------
 
+# The agent host is a separately-scaling Function App. A burst of calls can trigger
+# its scale-out, and a request landing on a still-cold instance stalls to the client
+# timeout. Retry transient TRANSPORT faults (timeouts, connection errors, 5xx/429) so a
+# platform autoscale event doesn't corrupt a data point — a real A2A client would. This
+# never retries an agent's own JSON-RPC response (returned as-is for the evaluator); a
+# transport timeout must not be mislabeled as agent behavior. See Devlog D3.
+_RETRY_ATTEMPTS = 4
+_RETRY_BACKOFF_S = 2.0
+_RETRY_HTTP_CODES = {429, 500, 502, 503, 504}
+
+
+def _http_json(url: str, data: bytes | None = None, timeout: int = 30) -> dict:
+    headers = {"Content-Type": "application/json"} if data is not None else {}
+    last_exc: Exception | None = None
+    for attempt in range(_RETRY_ATTEMPTS):
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code not in _RETRY_HTTP_CODES:
+                raise  # a real client/server error — not a transient transport fault
+            last_exc = e
+        except (urllib.error.URLError, TimeoutError) as e:  # incl. socket timeout
+            last_exc = e
+        if attempt < _RETRY_ATTEMPTS - 1:
+            sleep_s = _RETRY_BACKOFF_S * (2 ** attempt)
+            logging.warning("A2A transport transient fault on %s (attempt %d/%d): %r; "
+                            "retrying in %.1fs", url, attempt + 1, _RETRY_ATTEMPTS,
+                            last_exc, sleep_s)
+            time.sleep(sleep_s)
+    assert last_exc is not None
+    raise last_exc
+
+
 def _http_get_card(agent_id: str) -> dict:
     url = f"{AGENT_BASE_URL}/agents/{agent_id}/.well-known/agent-card.json"
-    with urllib.request.urlopen(url, timeout=30) as r:
-        return json.loads(r.read())
+    return _http_json(url, timeout=30)
 
 
 def _http_transport(agent_id: str, request: dict) -> dict:
     url = f"{AGENT_BASE_URL}/agents/{agent_id}/a2a"
     rpc = {"jsonrpc": "2.0", "id": 1, "method": "message/send", "params": request}
     data = json.dumps(rpc).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read())["result"]
+    return _http_json(url, data=data, timeout=60)["result"]
 
 
 def _build_env(active_specs: list[dict]):
