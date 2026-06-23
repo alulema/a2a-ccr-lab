@@ -1,0 +1,362 @@
+[
+  {
+    "id": "corr-rag-contoso-0",
+    "org": "contoso",
+    "persona": "correct",
+    "declaredSkills": {
+      "rag": 0.9
+    },
+    "trueSkills": {
+      "rag": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable rag agent. retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "corr-rag-fabrikam-1",
+    "org": "fabrikam",
+    "persona": "correct",
+    "declaredSkills": {
+      "rag": 0.9
+    },
+    "trueSkills": {
+      "rag": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable rag agent. retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "degr-rag-northwind-0",
+    "org": "northwind",
+    "persona": "degraded",
+    "declaredSkills": {
+      "rag": 0.99
+    },
+    "trueSkills": {
+      "rag": 0.7
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.7,
+    "description": "High-throughput rag service. retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "adve-rag-rogue-llc-0",
+    "org": "rogue-llc",
+    "persona": "adversarial",
+    "declaredSkills": {
+      "rag": 0.99
+    },
+    "trueSkills": {
+      "rag": 0.1
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "broad",
+    "signed": true,
+    "poison": true,
+    "realCapability": 0.1,
+    "description": "Best rag expert retrieval grounding documents vector search citations knowledge retrieval grounding documents vector search citations knowledge guaranteed top quality"
+  },
+  {
+    "id": "cana-rag-adventureworks-0",
+    "org": "adventureworks",
+    "persona": "canary_aware",
+    "declaredSkills": {
+      "rag": 0.99
+    },
+    "trueSkills": {
+      "rag": 0.12
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.12,
+    "description": "Certified rag provider. retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "corr-planning-contoso-0",
+    "org": "contoso",
+    "persona": "correct",
+    "declaredSkills": {
+      "planning": 0.9
+    },
+    "trueSkills": {
+      "planning": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable planning agent. decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "corr-planning-fabrikam-1",
+    "org": "fabrikam",
+    "persona": "correct",
+    "declaredSkills": {
+      "planning": 0.9
+    },
+    "trueSkills": {
+      "planning": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable planning agent. decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "degr-planning-northwind-0",
+    "org": "northwind",
+    "persona": "degraded",
+    "declaredSkills": {
+      "planning": 0.99
+    },
+    "trueSkills": {
+      "planning": 0.7
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.7,
+    "description": "High-throughput planning service. decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "adve-planning-rogue-llc-0",
+    "org": "rogue-llc",
+    "persona": "adversarial",
+    "declaredSkills": {
+      "planning": 0.99
+    },
+    "trueSkills": {
+      "planning": 0.1
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "broad",
+    "signed": true,
+    "poison": true,
+    "realCapability": 0.1,
+    "description": "Best planning expert decompose subtasks schedule plan steps goals orchestrate decompose subtasks schedule plan steps goals orchestrate guaranteed top quality"
+  },
+  {
+    "id": "cana-planning-adventureworks-0",
+    "org": "adventureworks",
+    "persona": "canary_aware",
+    "declaredSkills": {
+      "planning": 0.99
+    },
+    "trueSkills": {
+      "planning": 0.12
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.12,
+    "description": "Certified planning provider. decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "corr-data_transform-contoso-0",
+    "org": "contoso",
+    "persona": "correct",
+    "declaredSkills": {
+      "data_transform": 0.9
+    },
+    "trueSkills": {
+      "data_transform": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable data_transform agent. parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "corr-data_transform-fabrikam-1",
+    "org": "fabrikam",
+    "persona": "correct",
+    "declaredSkills": {
+      "data_transform": 0.9
+    },
+    "trueSkills": {
+      "data_transform": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable data_transform agent. parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "degr-data_transform-northwind-0",
+    "org": "northwind",
+    "persona": "degraded",
+    "declaredSkills": {
+      "data_transform": 0.99
+    },
+    "trueSkills": {
+      "data_transform": 0.7
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.7,
+    "description": "High-throughput data_transform service. parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "adve-data_transform-rogue-llc-0",
+    "org": "rogue-llc",
+    "persona": "adversarial",
+    "declaredSkills": {
+      "data_transform": 0.99
+    },
+    "trueSkills": {
+      "data_transform": 0.1
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "broad",
+    "signed": true,
+    "poison": true,
+    "realCapability": 0.1,
+    "description": "Best data_transform expert parse map reshape normalize csv json convert pipeline parse map reshape normalize csv json convert pipeline guaranteed top quality"
+  },
+  {
+    "id": "cana-data_transform-adventureworks-0",
+    "org": "adventureworks",
+    "persona": "canary_aware",
+    "declaredSkills": {
+      "data_transform": 0.99
+    },
+    "trueSkills": {
+      "data_transform": 0.12
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.12,
+    "description": "Certified data_transform provider. parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "corr-api_action-contoso-0",
+    "org": "contoso",
+    "persona": "correct",
+    "declaredSkills": {
+      "api_action": 0.9
+    },
+    "trueSkills": {
+      "api_action": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable api_action agent. invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "corr-api_action-fabrikam-1",
+    "org": "fabrikam",
+    "persona": "correct",
+    "declaredSkills": {
+      "api_action": 0.9
+    },
+    "trueSkills": {
+      "api_action": 0.9
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.9,
+    "description": "Reliable api_action agent. invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "degr-api_action-northwind-0",
+    "org": "northwind",
+    "persona": "degraded",
+    "declaredSkills": {
+      "api_action": 0.99
+    },
+    "trueSkills": {
+      "api_action": 0.7
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.7,
+    "description": "High-throughput api_action service. invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "adve-api_action-rogue-llc-0",
+    "org": "rogue-llc",
+    "persona": "adversarial",
+    "declaredSkills": {
+      "api_action": 0.99
+    },
+    "trueSkills": {
+      "api_action": 0.1
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "broad",
+    "signed": true,
+    "poison": true,
+    "realCapability": 0.1,
+    "description": "Best api_action expert invoke endpoint http rest action mutate side effect call invoke endpoint http rest action mutate side effect call guaranteed top quality"
+  },
+  {
+    "id": "cana-api_action-adventureworks-0",
+    "org": "adventureworks",
+    "persona": "canary_aware",
+    "declaredSkills": {
+      "api_action": 0.99
+    },
+    "trueSkills": {
+      "api_action": 0.12
+    },
+    "authScheme": "oauth2",
+    "binding": "jsonrpc",
+    "permissionScope": "narrow",
+    "signed": true,
+    "poison": false,
+    "realCapability": 0.12,
+    "description": "Certified api_action provider. invoke endpoint http rest action mutate side effect call"
+  }
+]

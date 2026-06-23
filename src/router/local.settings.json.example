@@ -1,0 +1,11 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AGENT_BASE_URL": "http://localhost:7071/api",
+    "DATA_CONTAINER": "data",
+    "RESULTS_CONTAINER": "results"
+  },
+  "_comment": "Point AGENT_BASE_URL at the deployed agent host (https://<agents-app>.azurewebsites.net/api). Leave DATA_STORAGE_ACCOUNT unset to read data/*.json from the repo locally."
+}

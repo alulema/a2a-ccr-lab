@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "DATA_CONTAINER": "data"
+  },
+  "_comment": "Leave DATA_STORAGE_ACCOUNT unset locally to read data/agents.json from the repo. Set it to a storage account name to read from Blob via managed identity."
+}

@@ -1,0 +1,7 @@
+# Azure Functions Python worker
+azure-functions
+# Blob-backed agent specs via managed identity
+azure-storage-blob>=12.19
+azure-identity>=1.16
+# ccrlib (the scientific core) is pure-stdlib and is vendored into this folder by
+# scripts/sync_lib at package time — no pip dependency.

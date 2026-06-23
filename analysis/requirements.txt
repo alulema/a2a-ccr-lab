@@ -1,0 +1,4 @@
+# Optional — only needed if you extend analyze.py with plots/pivots.
+# The committed analyze.py runs on the standard library alone.
+pandas>=2.0
+matplotlib>=3.7

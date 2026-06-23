@@ -1,0 +1,338 @@
+[
+  {
+    "id": "t0000",
+    "skill": "rag",
+    "difficulty": "easy",
+    "payload": "task-0000-rag-easy",
+    "text": "easy rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0001",
+    "skill": "planning",
+    "difficulty": "medium",
+    "payload": "task-0001-planning-medium",
+    "text": "medium planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0002",
+    "skill": "data_transform",
+    "difficulty": "hard",
+    "payload": "task-0002-data_transform-hard",
+    "text": "hard data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0003",
+    "skill": "api_action",
+    "difficulty": "easy",
+    "payload": "task-0003-api_action-easy",
+    "text": "easy api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0004",
+    "skill": "rag",
+    "difficulty": "medium",
+    "payload": "task-0004-rag-medium",
+    "text": "medium rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0005",
+    "skill": "planning",
+    "difficulty": "hard",
+    "payload": "task-0005-planning-hard",
+    "text": "hard planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0006",
+    "skill": "data_transform",
+    "difficulty": "easy",
+    "payload": "task-0006-data_transform-easy",
+    "text": "easy data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0007",
+    "skill": "api_action",
+    "difficulty": "medium",
+    "payload": "task-0007-api_action-medium",
+    "text": "medium api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0008",
+    "skill": "rag",
+    "difficulty": "hard",
+    "payload": "task-0008-rag-hard",
+    "text": "hard rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0009",
+    "skill": "planning",
+    "difficulty": "easy",
+    "payload": "task-0009-planning-easy",
+    "text": "easy planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0010",
+    "skill": "data_transform",
+    "difficulty": "medium",
+    "payload": "task-0010-data_transform-medium",
+    "text": "medium data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0011",
+    "skill": "api_action",
+    "difficulty": "hard",
+    "payload": "task-0011-api_action-hard",
+    "text": "hard api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0012",
+    "skill": "rag",
+    "difficulty": "easy",
+    "payload": "task-0012-rag-easy",
+    "text": "easy rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0013",
+    "skill": "planning",
+    "difficulty": "medium",
+    "payload": "task-0013-planning-medium",
+    "text": "medium planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0014",
+    "skill": "data_transform",
+    "difficulty": "hard",
+    "payload": "task-0014-data_transform-hard",
+    "text": "hard data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0015",
+    "skill": "api_action",
+    "difficulty": "easy",
+    "payload": "task-0015-api_action-easy",
+    "text": "easy api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0016",
+    "skill": "rag",
+    "difficulty": "medium",
+    "payload": "task-0016-rag-medium",
+    "text": "medium rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0017",
+    "skill": "planning",
+    "difficulty": "hard",
+    "payload": "task-0017-planning-hard",
+    "text": "hard planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0018",
+    "skill": "data_transform",
+    "difficulty": "easy",
+    "payload": "task-0018-data_transform-easy",
+    "text": "easy data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0019",
+    "skill": "api_action",
+    "difficulty": "medium",
+    "payload": "task-0019-api_action-medium",
+    "text": "medium api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0020",
+    "skill": "rag",
+    "difficulty": "hard",
+    "payload": "task-0020-rag-hard",
+    "text": "hard rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0021",
+    "skill": "planning",
+    "difficulty": "easy",
+    "payload": "task-0021-planning-easy",
+    "text": "easy planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0022",
+    "skill": "data_transform",
+    "difficulty": "medium",
+    "payload": "task-0022-data_transform-medium",
+    "text": "medium data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0023",
+    "skill": "api_action",
+    "difficulty": "hard",
+    "payload": "task-0023-api_action-hard",
+    "text": "hard api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0024",
+    "skill": "rag",
+    "difficulty": "easy",
+    "payload": "task-0024-rag-easy",
+    "text": "easy rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0025",
+    "skill": "planning",
+    "difficulty": "medium",
+    "payload": "task-0025-planning-medium",
+    "text": "medium planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0026",
+    "skill": "data_transform",
+    "difficulty": "hard",
+    "payload": "task-0026-data_transform-hard",
+    "text": "hard data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0027",
+    "skill": "api_action",
+    "difficulty": "easy",
+    "payload": "task-0027-api_action-easy",
+    "text": "easy api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0028",
+    "skill": "rag",
+    "difficulty": "medium",
+    "payload": "task-0028-rag-medium",
+    "text": "medium rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0029",
+    "skill": "planning",
+    "difficulty": "hard",
+    "payload": "task-0029-planning-hard",
+    "text": "hard planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0030",
+    "skill": "data_transform",
+    "difficulty": "easy",
+    "payload": "task-0030-data_transform-easy",
+    "text": "easy data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0031",
+    "skill": "api_action",
+    "difficulty": "medium",
+    "payload": "task-0031-api_action-medium",
+    "text": "medium api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0032",
+    "skill": "rag",
+    "difficulty": "hard",
+    "payload": "task-0032-rag-hard",
+    "text": "hard rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0033",
+    "skill": "planning",
+    "difficulty": "easy",
+    "payload": "task-0033-planning-easy",
+    "text": "easy planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0034",
+    "skill": "data_transform",
+    "difficulty": "medium",
+    "payload": "task-0034-data_transform-medium",
+    "text": "medium data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0035",
+    "skill": "api_action",
+    "difficulty": "hard",
+    "payload": "task-0035-api_action-hard",
+    "text": "hard api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0036",
+    "skill": "rag",
+    "difficulty": "easy",
+    "payload": "task-0036-rag-easy",
+    "text": "easy rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0037",
+    "skill": "planning",
+    "difficulty": "medium",
+    "payload": "task-0037-planning-medium",
+    "text": "medium planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0038",
+    "skill": "data_transform",
+    "difficulty": "hard",
+    "payload": "task-0038-data_transform-hard",
+    "text": "hard data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0039",
+    "skill": "api_action",
+    "difficulty": "easy",
+    "payload": "task-0039-api_action-easy",
+    "text": "easy api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0040",
+    "skill": "rag",
+    "difficulty": "medium",
+    "payload": "task-0040-rag-medium",
+    "text": "medium rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0041",
+    "skill": "planning",
+    "difficulty": "hard",
+    "payload": "task-0041-planning-hard",
+    "text": "hard planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0042",
+    "skill": "data_transform",
+    "difficulty": "easy",
+    "payload": "task-0042-data_transform-easy",
+    "text": "easy data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0043",
+    "skill": "api_action",
+    "difficulty": "medium",
+    "payload": "task-0043-api_action-medium",
+    "text": "medium api_action task: invoke endpoint http rest action mutate side effect call"
+  },
+  {
+    "id": "t0044",
+    "skill": "rag",
+    "difficulty": "hard",
+    "payload": "task-0044-rag-hard",
+    "text": "hard rag task: retrieval grounding documents vector search citations knowledge"
+  },
+  {
+    "id": "t0045",
+    "skill": "planning",
+    "difficulty": "easy",
+    "payload": "task-0045-planning-easy",
+    "text": "easy planning task: decompose subtasks schedule plan steps goals orchestrate"
+  },
+  {
+    "id": "t0046",
+    "skill": "data_transform",
+    "difficulty": "medium",
+    "payload": "task-0046-data_transform-medium",
+    "text": "medium data_transform task: parse map reshape normalize csv json convert pipeline"
+  },
+  {
+    "id": "t0047",
+    "skill": "api_action",
+    "difficulty": "hard",
+    "payload": "task-0047-api_action-hard",
+    "text": "hard api_action task: invoke endpoint http rest action mutate side effect call"
+  }
+]

@@ -1,0 +1,32 @@
+# Azure Developer CLI (azd) definition. Deploy the whole lab with:  azd up
+name: a2a-ccr-lab
+metadata:
+  template: a2a-ccr-lab@0.1.0
+
+# ccrlib (the pure-Python scientific core) lives at the repo root. Vendor it into
+# each Function App folder before packaging, since Functions deploys per-app.
+hooks:
+  prepackage:
+    windows:
+      shell: pwsh
+      run: ./scripts/sync_lib.ps1
+    posix:
+      shell: sh
+      run: ./scripts/sync_lib.sh
+  postprovision:
+    windows:
+      shell: pwsh
+      run: ./scripts/seed_data.ps1
+    posix:
+      shell: sh
+      run: echo "Provision done. Seed data with scripts/seed_data.ps1 (uploads data/*.json to the 'data' container)."
+
+services:
+  agents:
+    project: src/agents
+    language: python
+    host: function
+  router:
+    project: src/router
+    language: python
+    host: function
