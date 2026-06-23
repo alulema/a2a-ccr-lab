@@ -13,35 +13,55 @@ az login            # interactive, in your terminal
 az account set --subscription "<the subscription that owns your RG>"
 ```
 
-> **Permissions:** this deploys at **resource-group scope**, so you only need
-> **Contributor on the RG** — not on the whole subscription. (Subscription-scoped
-> deployment is blocked on many corporate subs; that's why we don't use it.)
+> **Permissions:** the default flow is **subscription-scoped** — the Bicep CREATES
+> the resource group and everything in it, so you can spin the whole lab up on
+> demand and delete it when done. You need subscription permission to create RGs +
+> deployments (you have this on a subscription where you can create RGs).
+>
+> If you only have **Contributor on a pre-existing RG** (no subscription rights),
+> use the group-scoped alternative at the bottom instead.
 
-## One command
-
-Pass your **existing resource group** as the 3rd argument:
+## One command (ephemeral: creates the RG, you delete it later)
 
 ```bash
 git clone <your-repo-url> a2a-ccr-lab && cd a2a-ccr-lab
-bash scripts/deploy.sh <env-name> <azure-region> <resource-group>
-# e.g. with the RG you created:
-bash scripts/deploy.sh ccrlab eastus a2a-ccr-lab
+bash scripts/deploy.sh <azure-region> [resource-group] [env-name]
+# e.g.
+bash scripts/deploy.sh eastus
+# (defaults: resource-group = a2a-ccr-lab, env-name = ccrlab)
 ```
 
-(If the RG doesn't exist and you have permission, the script creates it. If you
-omit the 3rd arg it defaults to `rg-<env-name>`.)
-
 `deploy.sh` will:
-1. **Provision** `infra/resources.bicep` into your RG (`az deployment group create`):
-   keyless Storage, App Insights + Log Analytics, a Flex Consumption plan, and the
-   two Function Apps with managed identity + RBAC.
+1. **Provision** `infra/main.bicep` (`az deployment sub create`): **creates the RG
+   `a2a-ccr-lab`**, then keyless Storage, App Insights + Log Analytics, a Flex
+   Consumption plan, and the two Function Apps with managed identity + RBAC.
 2. **Bundle** `ccrlib` + the dataset into each app (`scripts/sync_lib.sh`).
 3. **Publish** both apps with `func azure functionapp publish`.
 4. Save deployment coordinates to `.deploy.env`.
 
 > Pick a region where **Flex Consumption** + Linux Python are available (e.g.
-> `eastus`, `westus2`, `northeurope`). The resource region is the `<azure-region>`
-> argument and need not match your RG's metadata location.
+> `eastus`, `westus2`, `northeurope`).
+
+### Tear everything down
+
+The whole lab is disposable — one command removes all of it:
+
+```bash
+az group delete --name a2a-ccr-lab --yes
+```
+
+### Alternative: deploy into a pre-existing RG (group scope, fewer privileges)
+
+```bash
+az deployment group create \
+  --resource-group <existing-rg> \
+  --template-file infra/resources.bicep \
+  --parameters environmentName=ccrlab location=<azure-region>
+# then bundle + publish manually:
+sh scripts/sync_lib.sh
+(cd src/agents && func azure functionapp publish <agents-app-name>)
+(cd src/router && func azure functionapp publish <router-app-name>)
+```
 
 ## Run the distributed experiment
 

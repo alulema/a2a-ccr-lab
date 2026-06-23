@@ -1,40 +1,37 @@
 #!/usr/bin/env bash
-# One-shot deploy from Ubuntu using Azure CLI + Functions Core Tools (no azd).
-#   bash scripts/deploy.sh <env-name> <azure-region> [resource-group]
+# One-shot, ephemeral deploy from Ubuntu using Azure CLI + Functions Core Tools.
+#   bash scripts/deploy.sh <azure-region> [resource-group] [env-name]
 # Example:
-#   bash scripts/deploy.sh ccr-lab eastus
+#   bash scripts/deploy.sh eastus
 #
-# Deploys at RESOURCE-GROUP scope (needs only Contributor on the RG — not on the
-# whole subscription). If you DO have subscription Contributor, you can instead use
-# the subscription-scoped template: az deployment sub create --template-file
-# infra/main.bicep --location <region> --parameters environmentName=<env> location=<region>
+# Subscription-scoped: the Bicep CREATES the resource group (default a2a-ccr-lab)
+# and everything in it. Tear it all down when done with:
+#   az group delete --name <resource-group> --yes
+#
+# Needs subscription permission to create RGs + deployments. If you only have
+# Contributor on a pre-existing RG, deploy infra/resources.bicep at group scope
+# (az deployment group create --resource-group <rg> ...) — see DEPLOY.md.
 set -euo pipefail
 
-ENV_NAME="${1:-ccr-lab}"
-LOCATION="${2:-${AZURE_LOCATION:-}}"
-RG="${3:-rg-${ENV_NAME}}"
+LOCATION="${1:-${AZURE_LOCATION:-}}"
+RG="${2:-a2a-ccr-lab}"
+ENV_NAME="${3:-ccrlab}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 if [ -z "$LOCATION" ]; then
-  echo "Usage: bash scripts/deploy.sh <env-name> <azure-region> [resource-group]" >&2
+  echo "Usage: bash scripts/deploy.sh <azure-region> [resource-group] [env-name]" >&2
   exit 1
 fi
 command -v jq >/dev/null || { echo "Please install jq (sudo apt install jq)"; exit 1; }
 command -v func >/dev/null || { echo "Azure Functions Core Tools (func) not found"; exit 1; }
 
 echo ">> Account: $(az account show --query name -o tsv)"
-if ! az group show -n "$RG" >/dev/null 2>&1; then
-  echo ">> Creating resource group $RG ..."
-  az group create -n "$RG" -l "$LOCATION" -o none \
-    || { echo "Could not create RG '$RG'. Ask an admin to pre-create it and pass it as the 3rd arg."; exit 1; }
-fi
-
-echo ">> Provisioning infra into $RG (env=$ENV_NAME, location=$LOCATION) ..."
-OUT=$(az deployment group create \
-  --resource-group "$RG" \
+echo ">> Provisioning (creates RG '$RG', env=$ENV_NAME, location=$LOCATION) ..."
+OUT=$(az deployment sub create \
   --name "ccr-${ENV_NAME}" \
-  --template-file "$ROOT/infra/resources.bicep" \
-  --parameters environmentName="$ENV_NAME" location="$LOCATION" \
+  --location "$LOCATION" \
+  --template-file "$ROOT/infra/main.bicep" \
+  --parameters environmentName="$ENV_NAME" location="$LOCATION" resourceGroupName="$RG" \
   --query properties.outputs -o json)
 
 AGENTS_NAME=$(echo "$OUT" | jq -r .SERVICE_AGENTS_NAME.value)
@@ -64,3 +61,5 @@ echo ""
 echo ">> Done. Agent cards live at: ${AGENTS_URL}/agents/<id>/.well-known/agent-card.json"
 echo ">> Run the distributed experiment with:"
 echo "     bash scripts/run_experiment.sh"
+echo ">> Tear EVERYTHING down when finished with:"
+echo "     az group delete --name ${RG} --yes"
