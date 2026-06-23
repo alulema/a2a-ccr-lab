@@ -1,5 +1,5 @@
-// CCR Lab — resource-group-scoped resources: monitoring, storage, a shared Flex
-// Consumption plan, the agent host + router Function Apps, and RBAC.
+// CCR Lab — resource-group-scoped resources: monitoring, storage, the agent host
+// + router Function Apps (each on its OWN Flex Consumption plan), and RBAC.
 
 param location string
 param environmentName string
@@ -8,7 +8,6 @@ param maxInstanceCount int = 40
 
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var storageAccountName = take('st${replace(resourceToken, '-', '')}', 24)
-var planName = 'plan-${resourceToken}'
 var agentsAppName = 'func-agents-${resourceToken}'
 var routerAppName = 'func-router-${resourceToken}'
 
@@ -31,28 +30,13 @@ module storage 'modules/storage.bicep' = {
   }
 }
 
-// Shared Flex Consumption plan for both apps.
-resource plan 'Microsoft.Web/serverfarms@2024-04-01' = {
-  name: planName
-  location: location
-  tags: tags
-  sku: {
-    name: 'FC1'
-    tier: 'FlexConsumption'
-  }
-  kind: 'functionapp'
-  properties: {
-    reserved: true
-  }
-}
-
 module agentsApp 'modules/functionApp.bicep' = {
   name: 'agentsApp'
   params: {
     location: location
     tags: tags
     appName: agentsAppName
-    planId: plan.id
+    planName: 'plan-agents-${resourceToken}'
     storageAccountName: storage.outputs.name
     blobEndpoint: storage.outputs.blobEndpoint
     deploymentContainerName: 'deploy-agents'
@@ -72,7 +56,7 @@ module routerApp 'modules/functionApp.bicep' = {
     location: location
     tags: tags
     appName: routerAppName
-    planId: plan.id
+    planName: 'plan-router-${resourceToken}'
     storageAccountName: storage.outputs.name
     blobEndpoint: storage.outputs.blobEndpoint
     deploymentContainerName: 'deploy-router'

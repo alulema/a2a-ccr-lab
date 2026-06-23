@@ -4,7 +4,9 @@
 param location string
 param tags object
 param appName string
-param planId string
+@description('Name of the Flex Consumption plan to create for THIS app. Flex '
+  + 'Consumption allows exactly one site per plan, so each app gets its own.')
+param planName string
 param storageAccountName string
 param blobEndpoint string
 param deploymentContainerName string
@@ -30,6 +32,21 @@ var baseSettings = [
   }
 ]
 
+// One Flex Consumption plan per app (Flex allows only one site per serverfarm).
+resource plan 'Microsoft.Web/serverfarms@2024-04-01' = {
+  name: planName
+  location: location
+  tags: tags
+  sku: {
+    name: 'FC1'
+    tier: 'FlexConsumption'
+  }
+  kind: 'functionapp'
+  properties: {
+    reserved: true
+  }
+}
+
 resource site 'Microsoft.Web/sites@2024-04-01' = {
   name: appName
   location: location
@@ -37,7 +54,7 @@ resource site 'Microsoft.Web/sites@2024-04-01' = {
   kind: 'functionapp,linux'
   identity: { type: 'SystemAssigned' }
   properties: {
-    serverFarmId: planId
+    serverFarmId: plan.id
     httpsOnly: true
     functionAppConfig: {
       deployment: {
