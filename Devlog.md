@@ -1,0 +1,139 @@
+# Devlog — a2a-ccr-lab
+
+Engineering journal of the **distributed** evidence harness (router + agent host as
+separate Azure Functions, real A2A HTTP between them). Records difficulties hit while
+bringing the cloud deployment up, their root causes, and — where relevant — the
+**implication for the paper** (reproducibility, threats to validity, and the
+operational realities of running A2A capability-routing over a real network).
+
+The local, in-process path (`scripts/local_run.py`) was already deterministic and
+green; everything below is specific to the *distributed* validation, which is the
+whole point of the cloud lab (proving the numbers hold over real A2A transport, not
+just in a single process).
+
+---
+
+## 2026-06-23 — Bringing up the distributed run on Flex Consumption
+
+### D1 — Deployment outputs read as `null` → published to an app named "null"
+- **Symptom:** `deploy.sh` printed `agents=null router=null`, then
+  `func azure functionapp publish` failed with `Can't find app with name "null"`.
+- **Root cause:** ARM returns `properties.outputs` **keys in lowercase**. The script
+  read them with their declared casing (`.SERVICE_AGENTS_NAME.value`), so every lookup
+  missed and `jq -r` yielded the string `"null"`.
+- **Resolution:** normalize keys before reading —
+  `jq 'with_entries(.key |= ascii_downcase)'` — and read `.service_agents_name.value`.
+  Added a guard that aborts with a clear message if outputs come back null instead of
+  blindly publishing to `null` (commit `59a696c`).
+- **Implication for paper:** a one-line, silent casing mismatch produced a failure two
+  steps downstream with a misleading message. Worth a sentence in *reproducibility*:
+  deployment scripts should **fail fast and validate** infra outputs, not propagate
+  empty values into later stages.
+
+### D2 — `func publish` can't determine project language
+- **Symptom:** `Can't determine project language from files` /
+  `Worker runtime cannot be 'None'`.
+- **Root cause:** `local.settings.json` is gitignored and absent on a fresh clone, so
+  Core Tools had no `FUNCTIONS_WORKER_RUNTIME` to infer Python from. The v2 project
+  files alone were not enough for auto-detection in this toolchain version.
+- **Resolution:** pass the runtime explicitly — `func azure functionapp publish <app>
+  --python` — in `deploy.sh`.
+- **Implication for paper:** minor, but a reproducibility footnote: a clean checkout
+  must publish without relying on developer-local, gitignored settings.
+
+### D3 — `/experiment/run` returns HTTP 500 after ~153s (the hard one)
+- **Symptom:** first cloud run (default `seeds=2 tasks=12`) ran for **153s** then
+  returned **HTTP 500 with an empty body**. `health` was 200 and fast.
+- **Misleading trails while diagnosing:**
+  - `func ... logstream` is **not supported on Flex Consumption** (Linux/Flex) — it
+    refused immediately and pointed to the portal Live Stream.
+  - `az monitor app-insights ...` **hung for 30+ min** on first use: the dynamic
+    install of the `application-insights` CLI extension waited on a confirmation prompt
+    that never surfaced in the shell. Fixed with
+    `az config set extension.use_dynamic_install=yes_without_prompt`.
+  - First App Insights queries returned **all tables empty** (exceptions, traces,
+    requests) — not because telemetry was missing, but because the default query window
+    was too narrow for a run that had since aged out. A **fresh** invocation plus
+    `--offset 1h` immediately surfaced full telemetry.
+- **First (wrong) hypothesis — initial cold start:** I initially blamed a cold-start
+  transient, since the first failure was right after deploy with both apps cold. A
+  warm `seeds=1 tasks=2` run then succeeded, seeming to confirm it. **This was wrong.**
+- **Refutation:** re-running the default `seeds=2 tasks=12` *warm* still failed at
+  ~149s — two failures at ~150s (149s, 153s) regardless of warm/cold state. A fixed
+  wall-clock failure independent of warm-up is a **timeout**, not initial cold start.
+- **Actual root cause (confirmed by telemetry):** a **single A2A `message/send` call
+  stalled for ~60s and hit the router's client timeout**. App Insights shows the last
+  successful `Functions.a2a` at 15:48:21.39, then a **60.1s gap**, then the exception
+  at 15:49:21.49 — exactly the `timeout=60` of `_http_transport`
+  (`src/router/function_app.py`). `urllib` raised `URLError`/timeout, unhandled →
+  function `Failed` (Duration=147233ms) → HTTP 500 with empty body. All *other* a2a
+  calls completed in 3–16 ms.
+- **Why one call stalls:** the agent host (one Function App for all agents) **scales
+  out under the burst** of the larger run; a request lands on a **freshly-spun instance
+  still cold-starting**, and that exceeds the 60s client timeout. This reconciles every
+  observation: the small run (few calls, no scale-out) passes; the large run reliably
+  triggers scale-out → one stalled call → failure at ~150s. `DrainMode`/`StopAsync`
+  traces right after the failure corroborate instance churn.
+- **Not the cause (ruled out):** RBAC/managed identity (a warm run wrote both result
+  blobs with 201), App Insights wiring (rich telemetry present), and the data path.
+- **Implication for paper (the important one):** in a **distributed** A2A system,
+  **mid-experiment autoscale events** inject multi-second-to-timeout latency spikes into
+  individual A2A calls, and a naive **synchronous** router converts a single such spike
+  into a **hard failure** — or, more dangerously, into a *false incident/defection*
+  attributable to the platform rather than to the routing policy or the agent's
+  behavior. Serverless transport latency is therefore a **first-class correctness
+  concern**, not a latency footnote. This is a genuine **threat to validity** for any
+  cloud A2A measurement and an argument that:
+  1. transient transport failures (timeouts, scale-out stalls, 5xx) must be **separated
+     from policy-attributable incidents** in the evaluator — we already read
+     ground-truth personas only in the evaluator, never in a policy; by the same
+     principle a transport timeout must never be mislabeled as a defection;
+  2. a robust A2A client must **retry transient transport faults with backoff** (a real
+     deployment would); without it, a single autoscale event corrupts a data point;
+  3. the protocol should reduce scale-out churn (pre-warmed / always-ready agent-host
+     instances) and/or report the transport-failure rate alongside the policy metrics so
+     platform noise is visible rather than silently folded into incidents.
+
+### D4 — Synchronous POST hits the ~230s gateway ceiling (confirmed)
+- **Symptom:** with D3's retry in place, `seeds=2 tasks=12` no longer 500s at ~150s —
+  instead it runs to **HTTP 504 GatewayTimeout at ~242s**. Azure Functions' front end
+  caps a single HTTP request at **~230s**; the run exceeds it.
+- **First fix attempt — pre-warm, FAILED:** set `always-ready http=2` on the agent host
+  (`az functionapp scale config always-ready set`) to kill scale-out stalls, then re-ran
+  warm. **Still 504 at ~242s.** This rules out stalls as the dominant cost.
+- **Actual cost — per-call connection setup:** the router issued **~1000 sequential A2A
+  calls per run**, and stdlib `urllib` opened a **fresh TCP+TLS connection on every
+  call**, against the agent host's **public ingress**. Server-side each `a2a` executes
+  in 3–16 ms (per App Insights), so the wall time is dominated by ~1000 TLS handshakes
+  over the internet-facing front end — which alone exceeds 230s. (This also amplifies
+  D3: more connections → more scale-out pressure → more stalls.)
+- **Resolution:** pool a single **keep-alive `requests.Session`** in the router, reused
+  across all calls (`src/router/function_app.py`; added `requests` to the router
+  `requirements.txt`). ~1000 handshakes collapse to a handful. **Measured: `seeds=2
+  tasks=12` went from 504 @ ~242s → HTTP 200 @ 14.9s — a ~16× speedup**, 576 runs,
+  n=24 per condition×policy cell. Confirms per-call TLS setup was the entire ceiling.
+- **Implication for paper:** a subtle but important systems result for distributed A2A —
+  **the transport client, not the routing method, set the experiment's scale ceiling.**
+  Naive per-call connection setup over public ingress (a) dominates wall time, (b)
+  amplifies autoscale churn (feeding D3's false-incident risk), and (c) silently caps how
+  much evidence one synchronous request can gather. Connection pooling is a one-line
+  architectural change with an outsized effect. Worth stating explicitly: measured A2A
+  latency/throughput is a property of the **client transport** as much as the protocol,
+  and must be reported as such. (If even pooled runs approach 230s at higher
+  seeds×tasks, fall back to chunking by seed across POSTs, or move the run off the
+  synchronous request path entirely — async 202 + poll Blob.)
+
+---
+
+## Status
+- **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
+  n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.
+- Full-grid signal (n=24) holds the thesis: at high value / low canary cost
+  (`V10_k0.05_mixed_I`) **CCR dominates** (net utility 8.3 vs ~4.8 baselines, incidents
+  0.125); CCR's advantage **requires indistinguishable canaries** — in `V3_k0.2_mixed_D`
+  (distinguishable) it collapses (net −2.4, incident 1.0); in a clean pool the canary
+  cost is pure overhead (optimistic_fallback edges it). Honest boundary conditions.
+- **Next:** (1) remove `always-ready` on the agent host (no longer needed with pooling —
+  saves cost); (2) power run at higher seeds×tasks for tighter CIs (≈15s per
+  2seeds×12tasks ⇒ ~150s budget allows ~seeds=10 tasks=24 in one POST; chunk beyond
+  ~230s); (3) `analysis/analyze.py` over `results/` for the RQ2/RQ4 tables/figures.

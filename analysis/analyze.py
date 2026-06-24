@@ -17,12 +17,23 @@ from collections import defaultdict
 from statistics import mean
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW = os.path.join(ROOT, "data", "results", "raw.jsonl")
+RESULTS_DIR = os.path.join(ROOT, "data", "results")
 
 
 def load_raw():
-    with open(RAW, encoding="utf-8") as f:
-        return [json.loads(line) for line in f]
+    # Accept either the cloud blob (raw.json: one JSON array, as written by the router)
+    # or local JSONL (raw.jsonl: one record per line). Prefer whichever is newer, so you
+    # can `az storage blob download ... raw.json` and run this directly — no jq step.
+    candidates = [os.path.join(RESULTS_DIR, n) for n in ("raw.json", "raw.jsonl")]
+    present = [p for p in candidates if os.path.exists(p)]
+    if not present:
+        raise SystemExit(f"No results found. Expected one of: {candidates}")
+    path = max(present, key=os.path.getmtime)
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    if text.lstrip().startswith("["):
+        return json.loads(text)  # JSON array (cloud raw.json)
+    return [json.loads(line) for line in text.splitlines() if line.strip()]  # JSONL
 
 
 def summarize(rows):
