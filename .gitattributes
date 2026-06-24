@@ -1,0 +1,24 @@
+# Normalize line endings. The repo stores text as LF; this overrides per-machine
+# core.autocrlf so a Windows checkout (incl. /mnt/c from WSL) stops showing the whole
+# tree as modified. The lab runs on Linux (Azure Functions Linux, Ubuntu NUC), so LF is
+# the working-tree default too.
+* text=auto eol=lf
+
+# Shell scripts and configs that must be LF wherever they run.
+*.sh   text eol=lf
+*.py   text eol=lf
+*.bicep text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+
+# PowerShell helpers are run on Windows — keep CRLF for them.
+*.ps1  text eol=crlf
+
+# Never normalize binaries.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.pdf  binary
