@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
-from . import domain, scoring
+from . import domain, embeddings, scoring
 from .scoring import Params
 
 Transport = Callable[[str, dict], dict]
@@ -108,6 +108,15 @@ def _candidates(ctx: Context) -> list[str]:
     return [aid for aid, c in ctx.cards.items() if scoring.hard_compatible(c, ctx.task)]
 
 
+def _tie(ctx: Context, a: str) -> float:
+    """Seeded tie-break for card-score selection. Two validly-signed agents can declare
+    the SAME capability (e.g. a stale `degraded` and a `canary_aware` defector both at the
+    ceiling); a router cannot tell them apart, so resolving the tie by agent insertion
+    order is an artifact. We break ties uniformly at random, seeded for reproducibility,
+    so the choice averages over the indistinguishable options across seeds."""
+    return domain.det_unit(ctx.run_seed, ctx.task["id"], a, "tiebreak")
+
+
 def _single_real(ctx: Context, policy: str, chosen: str | None) -> Decision:
     d = Decision(policy=policy, chosen=chosen)
     if chosen is None:
@@ -134,7 +143,8 @@ def card_only(ctx: Context) -> Decision:
     cands = _candidates(ctx)
     if not cands:
         return Decision(policy="card_only", chosen=None)
-    chosen = max(cands, key=lambda a: scoring.card_score(ctx.cards[a], ctx.task, ctx.params))
+    chosen = max(cands, key=lambda a: (scoring.card_score(ctx.cards[a], ctx.task, ctx.params),
+                                       _tie(ctx, a)))
     return _single_real(ctx, "card_only", chosen)
 
 
@@ -142,21 +152,22 @@ def embedding_policy(ctx: Context) -> Decision:
     cands = _candidates(ctx)
     if not cands:
         return Decision(policy="embedding", chosen=None)
-    q = domain.embed(ctx.task.get("text", ctx.task["skill"]))
+    q = embeddings.embed(ctx.task.get("text", ctx.task["skill"]))
 
     def sim(a: str) -> float:
         c = ctx.cards[a]
         text = c.get("description", "") + " " + " ".join(s["id"] for s in c["skills"])
-        return domain.cosine(q, domain.embed(text))
+        return embeddings.cosine(q, embeddings.embed(text))
 
-    return _single_real(ctx, "embedding", max(cands, key=sim))
+    return _single_real(ctx, "embedding", max(cands, key=lambda a: (sim(a), _tie(ctx, a))))
 
 
 def attestation_only(ctx: Context) -> Decision:
     cands = [a for a in _candidates(ctx) if scoring.verify_signature(ctx.cards[a]) == "valid"]
     if not cands:
         return Decision(policy="attestation_only", chosen=None)
-    chosen = max(cands, key=lambda a: scoring.card_score(ctx.cards[a], ctx.task, ctx.params))
+    chosen = max(cands, key=lambda a: (scoring.card_score(ctx.cards[a], ctx.task, ctx.params),
+                                       _tie(ctx, a)))
     return _single_real(ctx, "attestation_only", chosen)
 
 
@@ -166,7 +177,8 @@ def optimistic_fallback(ctx: Context) -> Decision:
     cands = _candidates(ctx)
     if not cands:
         return d
-    order = sorted(cands, key=lambda a: scoring.card_score(ctx.cards[a], ctx.task, p), reverse=True)
+    order = sorted(cands, key=lambda a: (scoring.card_score(ctx.cards[a], ctx.task, p),
+                                         _tie(ctx, a)), reverse=True)
     budget = p.budget
     attempt = 0
     for a in order:
@@ -195,7 +207,8 @@ def ccr(ctx: Context) -> Decision:
         return d
 
     # 1-2. soft card scoring (signature already folded into card_score).
-    scored = sorted(cands, key=lambda a: scoring.card_score(ctx.cards[a], ctx.task, p), reverse=True)
+    scored = sorted(cands, key=lambda a: (scoring.card_score(ctx.cards[a], ctx.task, p),
+                                          _tie(ctx, a)), reverse=True)
     topk = scored[: p.k_candidates]
 
     budget = p.budget
@@ -230,7 +243,7 @@ def ccr(ctx: Context) -> Decision:
         risk = scoring.risk_score(ctx.cards[a], metrics, p)
         return scoring.expected_utility(p_hat, risk, p.exec_cost, p)
 
-    plan = sorted(topk, key=utility, reverse=True)
+    plan = sorted(topk, key=lambda a: (utility(a), _tie(ctx, a)), reverse=True)
 
     # 5. delegate real task; budget-bounded fallback to the next-best by utility.
     attempt = 0

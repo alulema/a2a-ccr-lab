@@ -293,6 +293,44 @@ just in a single process).
 - Output: `analysis/significance_<ts>.csv` (per condition: best baseline, CCR−best,
   CI, significant flag).
 
+### R9 — Honest tie-break for card-score selection (#3) — INVALIDATES R5–R8 numbers
+- **Fix:** card-score selection broke ties by agent insertion order, so `attestation_only`
+  / `card_only` always landed on the benign `degraded` over the malicious-but-identically-
+  carded `canary_aware` (both declare 0.99) — verified earlier (5760/5760 → degraded).
+  A router cannot distinguish two identical signed cards, so we now break ties **uniformly
+  at random, seeded** (`_tie` in `policies.py`), applied to `card_only`, `attestation_only`,
+  `optimistic_fallback` ordering, and CCR's scoring/plan sorts (uniformly, so no policy
+  benefits from insertion order).
+- **Validated effect (V5_k0.2_mixed_I, in-process):** `attestation_only` success
+  0.514→**0.347**, incident **0→0.451**, net 1.57→**−0.167**. It is no longer a free
+  zero-incident abstainer — it routes to the `canary_aware` defector ~half the time. CCR
+  becomes the **only** high-success/low-incident policy (0.944 / 0.139 / net 2.35).
+- **Direction:** the old artifact was **conservative against CCR** (it made attestation
+  look safe); fixing it **strengthens** CCR — the R6 "never-flip" cells (CCR couldn't beat
+  a zero-incident abstainer) and the R7 Pareto counts should shift in CCR's favour.
+- **CONSEQUENCE:** R5–R8 headline numbers are now stale. **Re-run the full factorial**
+  (cloud + analysis) after #2 (real embeddings) lands, then refresh RQ1–RQ4, R6, R7, R8 and
+  the evidence section. Until then, treat current numbers as pre-fix.
+
+### R10 — Real Azure OpenAI embeddings for the `embedding` baseline (#2)
+- **Why:** `domain.embed` was a hashing bag-of-words — a toy a reviewer dismisses. The
+  `embedding` baseline now uses real AOAI embeddings in the cloud variant.
+- **Code:** `ccrlib/embeddings.py` — config-driven provider, process-cached
+  (`lru_cache`), managed-identity auth (DefaultAzureCredential, no keys). Uses AOAI when
+  `AZURE_OPENAI_EMBEDDINGS_ENDPOINT`/`_DEPLOYMENT` are set, else falls back to the offline
+  hash so local/CI stay hermetic (lazy SDK imports). `policies.embedding_policy` rewired to
+  it; `openai` added to `src/router/requirements.txt`. Validated: local fallback path runs
+  (backend `hash_bow`, embedding 0.521/0.083 unchanged; CCR unchanged).
+- **Infra:** `modules/openai.bicep` (AOAI account, `disableLocalAuth`, `text-embedding-3-
+  small` deployment) + `modules/openaiRbac.bicep` (router identity → "Cognitive Services
+  OpenAI User"); wired in `resources.bicep` (module, router app settings, RBAC, output).
+  `az bicep build` passes.
+- **Prerequisite:** the subscription needs Azure OpenAI access + `text-embedding-3-small`
+  quota in the region (eastus). If unavailable, leave the AOAI env vars unset to keep the
+  hash fallback (or make the module toggleable).
+- **Determinism:** AOAI embeddings are deterministic per model snapshot; the only loss of
+  hermeticity is the model version, pinned via deployment + api-version.
+
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
   n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.

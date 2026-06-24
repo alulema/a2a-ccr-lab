@@ -9,3 +9,7 @@ azure-identity>=1.16
 # calls per run (stdlib urllib opens a fresh TCP+TLS connection each call, which alone
 # pushes a single synchronous run past the ~230s gateway ceiling — see Devlog D4).
 requests>=2.31
+# Real Azure OpenAI embeddings for the 'embedding' baseline (managed-identity auth).
+# Only used when AZURE_OPENAI_EMBEDDINGS_ENDPOINT/_DEPLOYMENT are set; otherwise ccrlib
+# falls back to the offline hashing embedding, so local runs need no model server.
+openai>=1.40

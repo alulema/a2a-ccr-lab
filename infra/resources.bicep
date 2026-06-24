@@ -10,6 +10,8 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 var storageAccountName = take('st${replace(resourceToken, '-', '')}', 24)
 var agentsAppName = 'func-agents-${resourceToken}'
 var routerAppName = 'func-router-${resourceToken}'
+var openaiAccountName = 'oai-${resourceToken}'
+var openaiApiVersion = '2024-10-21'
 
 module monitoring 'modules/monitoring.bicep' = {
   name: 'monitoring'
@@ -27,6 +29,15 @@ module storage 'modules/storage.bicep' = {
     location: location
     tags: tags
     storageAccountName: storageAccountName
+  }
+}
+
+module openai 'modules/openai.bicep' = {
+  name: 'openai'
+  params: {
+    location: location
+    tags: tags
+    accountName: openaiAccountName
   }
 }
 
@@ -68,6 +79,10 @@ module routerApp 'modules/functionApp.bicep' = {
       { name: 'DATA_CONTAINER', value: 'data' }
       { name: 'RESULTS_CONTAINER', value: 'results' }
       { name: 'AGENT_BASE_URL', value: 'https://${agentsApp.outputs.defaultHostName}/api' }
+      // Real-embeddings variant of the `embedding` baseline (managed-identity auth).
+      { name: 'AZURE_OPENAI_EMBEDDINGS_ENDPOINT', value: openai.outputs.endpoint }
+      { name: 'AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT', value: openai.outputs.deploymentName }
+      { name: 'AZURE_OPENAI_API_VERSION', value: openaiApiVersion }
     ]
   }
 }
@@ -90,8 +105,19 @@ module routerRbac 'modules/rbac.bicep' = {
   }
 }
 
+// Router's managed identity -> "Cognitive Services OpenAI User" on the AOAI account, so
+// the embedding baseline can call AOAI via DefaultAzureCredential (no keys).
+module routerOpenaiRbac 'modules/openaiRbac.bicep' = {
+  name: 'routerOpenaiRbac'
+  params: {
+    openaiAccountName: openaiAccountName
+    principalId: routerApp.outputs.principalId
+  }
+}
+
 output DATA_STORAGE_ACCOUNT string = storage.outputs.name
 output SERVICE_AGENTS_NAME string = agentsApp.outputs.name
 output SERVICE_ROUTER_NAME string = routerApp.outputs.name
 output AGENTS_BASE_URL string = 'https://${agentsApp.outputs.defaultHostName}/api'
 output ROUTER_BASE_URL string = 'https://${routerApp.outputs.defaultHostName}/api'
+output OPENAI_ENDPOINT string = openai.outputs.endpoint
