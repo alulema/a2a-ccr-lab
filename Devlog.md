@@ -125,6 +125,49 @@ just in a single process).
 
 ---
 
+## 2026-06-24 — First evidence run, RQ2 result, and the V×kappa grid
+
+### R1 — First full-grid distributed evidence run
+- **Run:** `seeds=10 tasks=24` over the 4 headline conditions × 6 policies = **5760
+  runs in 134s** (HTTP 200, n=24 per condition×policy cell), results persisted to
+  `results/{rows,raw}.json` and analyzed via `analysis/analyze.py`.
+- **Headline (RQ2):** *"CCR is the net-utility winner in 1/2 (V, kappa) cells."* CCR
+  wins at high value / cheap canary (`V10_k0.05`, net 8.3 vs ~4.8 baselines, incidents
+  0.125) and loses at low value / expensive canary (`V3_k0.2`, where the canary spend is
+  overhead). **This conditional result is the point** — "CCR always wins" would be a red
+  flag; the value/cost regime decides.
+- **Boundary conditions (RQ2/RQ4) hold:** CCR collapses when canaries are
+  **distinguishable** (`V3_k0.2_mixed_D`: net −2.4, incident 1.0, defection 0.875 — the
+  adversary detects the probe and defects only on real tasks), and in a **clean pool**
+  the canary cost is pure overhead (`optimistic_fallback` edges CCR). Honest limits, not
+  failures of the method.
+- **To investigate:** `attestation_only` / `card_only` show incident_rate 0 with
+  success ~0.58 in *mixed* (adversarial) pools — i.e. they avoid incidents by
+  fail-safe/under-routing rather than by detection. Worth explaining explicitly in the
+  analysis so the CCR comparison is fair (CCR achieves success 0.92–1.0 *and* low
+  incidents; the cheap baselines only get low incidents by also failing more tasks).
+
+### R2 — Methodology note: the routing budget formula
+- The two original cells used `budget` 3.8 (k=0.2) and 3.2 (k=0.05). Reverse-engineered
+  to **`B = 2·exec_cost + k_candidates·kappa + margin` = 3.0 + 4·kappa** (defaults
+  exec_cost=1, k_candidates=4, margin=1). It guarantees the router can always afford to
+  canary all `k_candidates` and still execute + retry, so the **budget never artificially
+  binds** CCR's probing — the canary count is gated by `k_candidates`/VoI, not by running
+  out of budget. The grid uses this formula, reproducing the two original cells exactly.
+
+### R3 — RQ2 cost-benefit grid (design)
+- Replaced the 4 hand-picked conditions with a sweep: **V ∈ {3,5,8,10} × kappa ∈
+  {0.05,0.1,0.2}** over the mixed pool, indistinguishable canaries (**12 cells**), plus 2
+  retained boundary anchors (`V3_k0.2_mixed_D`, `V3_k0.2_clean_I`) = **14 conditions**.
+  `analyze.py` auto-discovers the grid from `*_mixed_I` names and reports the per-cell
+  winner — this surface (where CCR crosses from net-negative to net-positive) is the
+  empirical contribution for RQ2.
+- **Sizing constraint (from D4):** wall time ≈ runs × ~23 ms (pooled). The ~230s gateway
+  ceiling ⇒ keep `conditions × tasks × seeds × 6 ≲ 9000`. For 14 conditions that means
+  e.g. `tasks=24 seeds=3` (≈6k runs, ~140s, n=72/cell) or `tasks=24 seeds=4` (~190s,
+  n=96/cell). Bigger ⇒ chunk by seed across POSTs (needs a `seedStart` API param) or go
+  async (202 + poll Blob).
+
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
   n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.
@@ -133,7 +176,8 @@ just in a single process).
   0.125); CCR's advantage **requires indistinguishable canaries** — in `V3_k0.2_mixed_D`
   (distinguishable) it collapses (net −2.4, incident 1.0); in a clean pool the canary
   cost is pure overhead (optimistic_fallback edges it). Honest boundary conditions.
-- **Next:** (1) remove `always-ready` on the agent host (no longer needed with pooling —
-  saves cost); (2) power run at higher seeds×tasks for tighter CIs (≈15s per
-  2seeds×12tasks ⇒ ~150s budget allows ~seeds=10 tasks=24 in one POST; chunk beyond
-  ~230s); (3) `analysis/analyze.py` over `results/` for the RQ2/RQ4 tables/figures.
+- **Next:** V×kappa grid (R3) is coded in `_headline_conditions` — redeploy router, run
+  the grid (`tasks=24 seeds=3`, ~140s, n=72/cell), download `results/raw.json`, and
+  `analyze.py` emits the per-cell RQ2 winner surface. Then write up the crossover and the
+  fail-safe-baseline caveat (R1). `always-ready` on the agent host can be removed (pooling
+  made it unnecessary — saves cost).
