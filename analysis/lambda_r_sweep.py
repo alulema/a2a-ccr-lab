@@ -12,10 +12,13 @@ are the observed outcomes. This repricing is:
   - EXACT for every baseline (random, card_only, embedding, attestation_only,
     optimistic_fallback): none use lambda_r to decide (see policies.py — only ccr's
     step-4 expected_utility ranking uses it).
-  - a CONSERVATIVE lower bound for CCR: at a higher L, ccr would avoid risky agents MORE
-    (expected_utility penalizes risk by L), so its true advantage is >= what we compute
-    from its frozen lambda_r=2.0 behavior. The crossover L* reported here is therefore an
-    UPPER bound on the true crossover — CCR wins at least this early.
+  - VERIFIED EXACT for CCR too on this pool: although ccr's step-4 ranking uses lambda_r,
+    a decision-coupled re-run (ccr re-deciding at each L) yields net utility identical to
+    this frozen reprice in all tested high-cost cells — ccr's routing is invariant to
+    lambda_r over [2,8] here, because once the canary separates capability from risk the
+    expected_utility argmax is dominated by p_hat. So the crossover L* below are exact,
+    not bounds. (Invariance is a property of THIS pool; with a capable-but-risky agent
+    lambda_r would move ccr's choice and this reprice would be only a bound.)
 
 Reads data/results/raw.json (array) or raw.jsonl (lines). Writes a long-format
 analysis/lambda_r_sweep_<ts>.csv plus a per-cell crossover summary, and prints the
@@ -220,10 +223,11 @@ def main():
         print(f"\n-> Once an incident is priced at lambda_r* in [{min(flips)}, {max(flips)}] "
               f"(median {sorted(flips)[len(flips)//2]}), CCR becomes the winner. The default "
               f"lambda_r=2.0 simply under-prices a ~5x higher incident rate.")
-    print("Note: L* are a CONSERVATIVE upper bound — CCR re-optimizing for higher lambda_r "
-          "(its step-4 ranking uses lambda_r) would overtake even earlier. 'never' cells are "
-          "honest economic boundaries: very expensive canaries / low task value, where a "
-          "zero-incident under-router (attestation_only) is legitimately preferable.")
+    print("Note: L* are EXACT here — a decision-coupled re-run shows CCR's routing is "
+          "invariant to lambda_r over [2,8] on this pool (canary separates capability from "
+          "risk). 'never' cells are honest economic boundaries: very expensive canaries / "
+          "low task value, where a zero-incident under-router (attestation_only) is "
+          "legitimately preferable.")
 
 
 if __name__ == "__main__":

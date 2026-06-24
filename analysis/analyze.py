@@ -11,9 +11,11 @@ analysis/requirements.txt and extend this script.
 """
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import os
+import random
 import re
 from collections import defaultdict
 from datetime import datetime
@@ -131,7 +133,113 @@ def rq2_costbenefit(summary):
     return rows
 
 
+# --- Uncertainty (optional, behind --ci) --------------------------------------
+# The n=144 runs per cell are 24 tasks x 6 seeds over a FIXED agent pool — NOT 144
+# independent draws. We therefore CLUSTER-bootstrap by task (resample the 24 tasks with
+# replacement, keeping each task's seeds together), so the interval reflects task-to-task
+# heterogeneity, the dominant and most defensible source of variation. The CI is "within
+# this benchmark"; it does NOT speak to generalization across different pools/task sets.
+
+def _percentile_ci(samples, alpha=0.05):
+    samples.sort()
+    b = len(samples)
+    return (round(samples[int(alpha / 2 * b)], 4),
+            round(samples[min(b - 1, int((1 - alpha / 2) * b))], 4))
+
+
+def _clusters(records, valfn):
+    g = defaultdict(list)
+    for r in records:
+        g[r["task"]].append(valfn(r))
+    return list(g.values())
+
+
+def _boot_mean_ci(clusters, rng, n_boot):
+    if not clusters:
+        return (None, None)
+    k = len(clusters)
+    out = []
+    for _ in range(n_boot):
+        flat = []
+        for _ in range(k):
+            flat.extend(clusters[rng.randrange(k)])
+        out.append(mean(flat))
+    return _percentile_ci(out)
+
+
+def confidence(rows, analysis_dir, stamp, n_boot=1000):
+    rng = random.Random(20260624)
+    by_cell = defaultdict(list)
+    for r in rows:
+        by_cell[(r["condition"], r["policy"])].append(r)
+
+    # (a) Per-policy 95% CIs for the representative RQ1 cell.
+    rep = "V5_k0.2_mixed_I"
+    print(f"\n=== 95% CIs (cluster bootstrap by task, B={n_boot}) — {rep} ===")
+    print(f"{'policy':20} {'success':>16} {'net_utility':>18} {'incident':>16}")
+    for pol in ["ccr", "optimistic_fallback", "attestation_only", "card_only",
+                "embedding", "random"]:
+        recs = by_cell.get((rep, pol))
+        if not recs:
+            continue
+        s = _boot_mean_ci(_clusters(recs, lambda r: 1.0 if r["success"] else 0.0), rng, n_boot)
+        u = _boot_mean_ci(_clusters(recs, lambda r: r["net_utility"]), rng, n_boot)
+        i = _boot_mean_ci(_clusters(recs, lambda r: 1.0 if r["incident"] else 0.0), rng, n_boot)
+        print(f"{pol:20} [{s[0]:.3f},{s[1]:.3f}] [{u[0]:.3f},{u[1]:.3f}] [{i[0]:.3f},{i[1]:.3f}]")
+
+    # (b) Paired significance of CCR's net-utility advantage over the best baseline,
+    # per condition (paired by task — the right test for "is the advantage real?").
+    base_set = ["optimistic_fallback", "attestation_only", "card_only"]
+    out = []
+    for c in sorted({cc for (cc, _) in by_cell}):
+        ccr = by_cell.get((c, "ccr"))
+        if not ccr:
+            continue
+        bb, bbv = None, None
+        for b in base_set:
+            recs = by_cell.get((c, b))
+            if not recs:
+                continue
+            m = mean(r["net_utility"] for r in recs)
+            if bbv is None or m > bbv:
+                bb, bbv = b, m
+        if bb is None:
+            continue
+        ccr_by, base_by = defaultdict(list), defaultdict(list)
+        for r in ccr:
+            ccr_by[r["task"]].append(r["net_utility"])
+        for r in by_cell[(c, bb)]:
+            base_by[r["task"]].append(r["net_utility"])
+        tasks = sorted(set(ccr_by) & set(base_by))
+        diffs = []
+        for _ in range(n_boot):
+            cf, bf = [], []
+            for _ in range(len(tasks)):
+                t = tasks[rng.randrange(len(tasks))]
+                cf.extend(ccr_by[t])
+                bf.extend(base_by[t])
+            diffs.append(mean(cf) - mean(bf))
+        lo, hi = _percentile_ci(diffs)
+        out.append({"condition": c, "best_baseline": bb,
+                    "ccr_minus_best": round(mean(r["net_utility"] for r in ccr) - bbv, 4),
+                    "ci_lo": lo, "ci_hi": hi, "significant": int(lo > 0 or hi < 0)})
+    write_csv(os.path.join(analysis_dir, f"significance_{stamp}.csv"), out,
+              ["condition", "best_baseline", "ccr_minus_best", "ci_lo", "ci_hi", "significant"])
+
+    foc = [o for o in out if (m := _COND_RE.match(o["condition"]))
+           and m.group(4) == "I" and m.group(3) in ("hostile", "mixed")
+           and int(m.group(1)) >= 5 and float(m.group(2)) <= 0.2]
+    sig_pos = sum(1 for o in foc if o["significant"] and o["ccr_minus_best"] > 0)
+    print(f"\nPaired significance (high-stakes indistinguishable hostile/mixed, {len(foc)} cells): "
+          f"CCR's net-utility advantage is significant & positive in {sig_pos}/{len(foc)}.")
+
+
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--ci", action="store_true",
+                    help="also compute bootstrap CIs + paired CCR-vs-baseline significance")
+    ap.add_argument("--boot", type=int, default=1000, help="bootstrap resamples")
+    args = ap.parse_args()
     # Stamp outputs with the analysis launch time (local) so each run is a dated,
     # comparable artifact: analysis/summary_YYYYMMDDHHMM.csv, etc. One stamp per run so
     # both CSVs from the same invocation share it.
@@ -169,6 +277,9 @@ def main():
           f"{both} of them (incomparable without pricing incidents -> lambda_r sweep).")
     for p in sorted(counts, key=lambda p: -counts[p][0]):
         print(f"  {p:20} Pareto-optimal in {counts[p][0]:3}/{counts[p][1]} cells")
+
+    if args.ci:
+        confidence(rows, analysis_dir, stamp, n_boot=args.boot)
 
 
 if __name__ == "__main__":

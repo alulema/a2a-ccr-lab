@@ -217,10 +217,15 @@ just in a single process).
 - **Method (`analysis/lambda_r_sweep.py`):** reprice the SAME factorial runs at varying
   lambda_r — `net(L) = value*success - lambda_c*total_cost - L*incident` — and find the
   crossover lambda_r* at which CCR becomes the net-utility winner. Exact for all baselines
-  (none use lambda_r to decide); a **conservative lower bound** for CCR (its step-4
-  expected_utility ranking uses lambda_r, so re-optimizing at higher L would win *earlier*
-  — the reported L* are upper bounds). Validated: recomputed net at L=2 matches the
-  recorded net_utility to 9e-16.
+  (none use lambda_r to decide). **Verified exact for CCR too on this pool:** a
+  decision-coupled re-run (CCR re-deciding at each lambda_r) gives net utility *identical*
+  to the post-hoc frozen value in 20/20 tested high-kappa cells — CCR's routing is
+  **invariant to lambda_r over [2,8]** here (the canary already separates capability from
+  risk, so the expected_utility argmax is dominated by p_hat). Hence the crossover L* are
+  exact, not bounds; the earlier "conservative lower bound" framing was imprecise and is
+  retracted. (Invariance is a property of *this* pool; with a capable-but-risky agent
+  lambda_r would move CCR's choice and post-hoc would be a true bound.) Validated:
+  recomputed net at L=2 matches the recorded net_utility to 9e-16.
 - **(A) High-stakes region** (V≥5, kappa≤0.2, hostile/mixed, I): CCR is already the
   net-utility winner in **11/12 cells at the deployed lambda_r=2.0**.
 - **(B) The caveat-#2 cells:** 9 indistinguishable hostile/mixed cells where
@@ -235,8 +240,10 @@ just in a single process).
       zero-incident abstainer. CCR is correctly *not* the tool there.
 - **Decision-coupled complement** added to `scripts/sensitivity.py` (`lambda_r` sweep):
   re-runs the grid so the router re-decides per lambda_r; CCR's advantage should grow with
-  lambda_r as it avoids risk more while baselines can't adapt. The post-hoc result above is
-  the conservative lower bound on that.
+  lambda_r as it avoids risk more while baselines can't adapt. (Empirically CCR did NOT
+  re-decide over [2,8] on this pool — see above — so the post-hoc result is exact here, not
+  merely a bound; the re-run remains the right check on pools where risk and capability
+  trade off.)
 - **Paper takeaway:** the single-lambda_r "net-utility winner" table is misleading — it
   rewards `optimistic_fallback` for cheap success while ignoring its 5× incident rate.
   Report **incident_rate beside net utility**, and show the **lambda_r crossover**: under
@@ -264,6 +271,27 @@ just in a single process).
       where verification pays.
 - Output: `analysis/pareto_<ts>.csv` (per condition×policy: the 3 objectives,
   `pareto_optimal`, `dominated_by`).
+
+### R8 — Confidence intervals (devil's-advocate hardening)
+- **Method (`analyze.py --ci`):** the n=144 per cell are 24 tasks x 6 seeds over a FIXED
+  pool — not 144 independent draws — so we **cluster-bootstrap by task** (resample the 24
+  tasks with replacement, seeds kept together) and also run a **paired** bootstrap of
+  CCR − best-baseline net utility (paired by task — the correct test for "is the advantage
+  real?"). CIs are within-benchmark; they do not speak to cross-pool generalization.
+- **RQ1 cell (V5_k0.2_mixed_I), 95% CI:** CCR success [0.910, 0.986] vs optimistic
+  [0.924, 0.986] — **overlapping (success parity, not superiority)**; CCR incident
+  [0.049, 0.139] vs optimistic [0.382, 0.590] — **disjoint (incident reduction is
+  significant)**.
+- **The sobering result:** CCR's net-utility advantage over the best baseline is
+  **significant & positive in only 7/12** high-stakes indistinguishable hostile/mixed
+  cells (paired bootstrap). So part of the headline "8/20 net-utility wins" is **within
+  task-level noise**.
+- **Consequence for the paper's claims:** the robust, CI-backed finding is **fewer
+  incidents at statistically matched success**, not a universal net-utility win. Net
+  utility is regime-dependent (high V) and incident-price-dependent (lambda_r, R6). Lead
+  with the security metric; state net-utility wins with their significance.
+- Output: `analysis/significance_<ts>.csv` (per condition: best baseline, CCR−best,
+  CI, significant flag).
 
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
