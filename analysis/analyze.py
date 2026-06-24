@@ -1,8 +1,10 @@
 """Post-process the raw experiment runs into paper-ready CSVs.
 
-Reads data/results/raw.jsonl and emits:
-  analysis/summary.csv        - one row per (condition, policy) with all metrics
-  analysis/rq2_costbenefit.csv- net utility of CCR vs baselines across V x kappa
+Reads data/results/raw.json (cloud blob, a JSON array) or data/results/raw.jsonl
+(local JSON Lines) — whichever is newer — and emits timestamped artifacts so each
+analysis run is dated and comparable:
+  analysis/summary_YYYYMMDDHHMM.csv         - one row per (condition, policy), all metrics
+  analysis/rq2_costbenefit_YYYYMMDDHHMM.csv - net utility of CCR vs baselines across V x kappa
 
 Stdlib only (no pandas), so it runs anywhere. For plots, pip install the optional
 analysis/requirements.txt and extend this script.
@@ -14,6 +16,7 @@ import json
 import os
 import re
 from collections import defaultdict
+from datetime import datetime
 from statistics import mean
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -90,13 +93,18 @@ def rq2_costbenefit(summary):
 
 
 def main():
+    # Stamp outputs with the analysis launch time (local) so each run is a dated,
+    # comparable artifact: analysis/summary_YYYYMMDDHHMM.csv, etc. One stamp per run so
+    # both CSVs from the same invocation share it.
+    stamp = datetime.now().strftime("%Y%m%d%H%M")
+    analysis_dir = os.path.join(ROOT, "analysis")
     rows = load_raw()
     summary = summarize(rows)
-    write_csv(os.path.join(ROOT, "analysis", "summary.csv"), summary,
+    write_csv(os.path.join(analysis_dir, f"summary_{stamp}.csv"), summary,
               ["condition", "policy", "n", "success_rate", "mean_net_utility",
                "mean_total_cost", "incident_rate", "defection_rate", "mean_canaries"])
     cb = rq2_costbenefit(summary)
-    write_csv(os.path.join(ROOT, "analysis", "rq2_costbenefit.csv"), cb,
+    write_csv(os.path.join(analysis_dir, f"rq2_costbenefit_{stamp}.csv"), cb,
               ["V", "kappa", "ccr", "optimistic_fallback", "attestation_only", "card_only", "winner"])
     ccr_wins = sum(1 for r in cb if r["winner"] == "ccr")
     print(f"RQ2: CCR is the net-utility winner in {ccr_wins}/{len(cb)} (V, kappa) cells.")

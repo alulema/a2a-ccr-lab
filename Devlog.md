@@ -168,6 +168,18 @@ just in a single process).
   n=96/cell). Bigger ⇒ chunk by seed across POSTs (needs a `seedStart` API param) or go
   async (202 + poll Blob).
 
+### R4 — Reproducibility convention for results & analysis artifacts
+- **Decision:** keep the *intermediate* evidence, not just the final answer. Raw runs
+  (`data/results/raw.json`) are **versioned in git** — committed per run, so git history
+  is the lineage of every dataset behind a number. Analysis outputs are written with a
+  **launch-time stamp** (`analysis/summary_YYYYMMDDHHMM.csv`,
+  `rq2_costbenefit_YYYYMMDDHHMM.csv`, local time) and tracked, so each analysis is a
+  dated, comparable artifact. The transient local JSONL conversion stays untracked
+  (`analyze.py` reads the blob `raw.json` array directly).
+- **Why it matters for the paper:** every reported figure is traceable to the exact raw
+  run that produced it (git commit + matching CSV timestamp), which is the bar for a
+  reproducible evidence claim.
+
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
   n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.
