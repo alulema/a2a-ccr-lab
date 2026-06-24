@@ -133,6 +133,14 @@ def run_sweeps(tasks, seeds):
         s = grid_advantage(base_specs, replace(BASE_PARAMS, voi_threshold=tau), tasks, seeds)
         results.append(("voi_threshold", tau, scenario.malice_fraction(base_specs), s))
 
+    # --- Method: lambda_r (price of an incident), DECISION-COUPLED ---
+    # The router re-decides at each lambda_r (ccr's step-4 expected_utility ranking uses
+    # it), unlike the post-hoc repricing in analysis/lambda_r_sweep.py. CCR's advantage
+    # should grow with lambda_r — it avoids risky agents more, baselines can't adapt.
+    for lr in [0.0, 1.0, 2.0, 4.0, 8.0, 16.0]:
+        s = grid_advantage(base_specs, replace(BASE_PARAMS, lambda_r=lr), tasks, seeds)
+        results.append(("lambda_r", lr, scenario.malice_fraction(base_specs), s))
+
     return results
 
 
@@ -178,6 +186,11 @@ def write_outputs(results):
             "Cuánto penaliza el costo del canary.")
     section("Método — voi_threshold (compuerta de verificación)", "voi_threshold",
             "τ alto ⇒ CCR verifica menos (menos overhead, menos cobertura).")
+    section("Método — lambda_r (precio del incidente, decision-coupled)", "lambda_r",
+            "El router RE-DECIDE con cada lambda_r (su ranking usa expected_utility), a "
+            "diferencia del repricing post-hoc de analysis/lambda_r_sweep.py. La ventaja "
+            "debería CRECER con lambda_r: CCR evita más a los agentes riesgosos mientras los "
+            "baselines no se adaptan.")
 
     # Headline verdict (uses the high-stakes region — where CCR is meant to operate).
     gap_rows = sorted([(v, s) for (sw, v, mf, s) in results if sw == "claim_gap"])
