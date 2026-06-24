@@ -242,6 +242,29 @@ just in a single process).
   Report **incident_rate beside net utility**, and show the **lambda_r crossover**: under
   any realistic incident price (≳3), CCR wins everywhere it has materially fewer incidents.
 
+### R7 — Parameter-free Pareto view (in `analyze.py`)
+- **Why:** a risk-weighted ranking would reintroduce an arbitrary weight (the very
+  "calibrated to win" objection the sensitivity suite exists to rebut). Pareto dominance
+  over (success ↑, incident ↓, cost ↓) gives a "robust winner" view **without choosing a
+  weight** — the weight is exactly what lambda_r prices (R6).
+- **Results (per-cell non-domination across 120 cells):**
+    - **CCR is non-dominated in 37/40 indistinguishable hostile/mixed cells** — on the
+      frontier exactly where it is meant to operate.
+    - In **28/40** of those, **CCR and optimistic_fallback are BOTH non-dominated**
+      (CCR buys fewer incidents with canary cost; optimistic buys cheapness with
+      incidents) → they are **incomparable without pricing an incident**, which is what
+      the lambda_r crossover (R6) then resolves in CCR's favour under realistic pricing.
+      Pareto + R6 are the two halves of one honest argument.
+    - **`embedding` is Pareto-optimal in 0/120 cells** (always dominated) and `random`
+      in 40/120 — justifies treating the 3 strong baselines (optimistic_fallback,
+      attestation_only, card_only) as the real comparison set.
+    - CCR is on the frontier in **58/120 overall**: it is correctly **dominated in clean
+      pools** (canary = pure overhead, no threat) and low-value cells. That it is *not*
+      everywhere is the honest, self-consistent result — CCR earns the frontier only
+      where verification pays.
+- Output: `analysis/pareto_<ts>.csv` (per condition×policy: the 3 objectives,
+  `pareto_optimal`, `dominated_by`).
+
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
   n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.

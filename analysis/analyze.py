@@ -68,6 +68,45 @@ def write_csv(path, rows, fields):
     print(f"Wrote {path} ({len(rows)} rows)")
 
 
+_COND_RE = re.compile(r"^V(\d+)_k([\d.]+)_(clean|hostile|mixed)_(I|D)$")
+
+
+def pareto(summary):
+    """Per condition, flag Pareto-optimal policies over (success_rate up, incident_rate
+    down, mean_total_cost down). Parameter-FREE: it shows which policies are non-dominated
+    without picking a weight between success, risk, and cost — that trade-off is exactly
+    what lambda_r prices (see analysis/lambda_r_sweep.py). The honest reading of the caveat
+    cells: CCR and optimistic_fallback are BOTH on the frontier (CCR buys fewer incidents
+    with canary cost; optimistic buys cheapness with incidents), so choosing between them
+    REQUIRES pricing an incident — it is not a free win for either."""
+    by_cond = defaultdict(list)
+    for s in summary:
+        by_cond[s["condition"]].append(s)
+    out = []
+    for cond, recs in sorted(by_cond.items()):
+        for a in recs:
+            doms = []
+            for b in recs:
+                if b["policy"] == a["policy"]:
+                    continue
+                ge = (b["success_rate"] >= a["success_rate"]
+                      and b["incident_rate"] <= a["incident_rate"]
+                      and b["mean_total_cost"] <= a["mean_total_cost"])
+                strict = (b["success_rate"] > a["success_rate"]
+                          or b["incident_rate"] < a["incident_rate"]
+                          or b["mean_total_cost"] < a["mean_total_cost"])
+                if ge and strict:
+                    doms.append(b["policy"])
+            out.append({
+                "condition": cond, "policy": a["policy"],
+                "success_rate": a["success_rate"], "incident_rate": a["incident_rate"],
+                "mean_total_cost": a["mean_total_cost"],
+                "pareto_optimal": int(not doms),
+                "dominated_by": ";".join(sorted(doms)),
+            })
+    return out
+
+
 def rq2_costbenefit(summary):
     by = {(s["condition"], s["policy"]): s for s in summary}
     pols = ["ccr", "optimistic_fallback", "attestation_only", "card_only"]
@@ -108,6 +147,28 @@ def main():
               ["V", "kappa", "ccr", "optimistic_fallback", "attestation_only", "card_only", "winner"])
     ccr_wins = sum(1 for r in cb if r["winner"] == "ccr")
     print(f"RQ2: CCR is the net-utility winner in {ccr_wins}/{len(cb)} (V, kappa) cells.")
+
+    # Parameter-free Pareto view (success up, incident down, cost down).
+    par = pareto(summary)
+    write_csv(os.path.join(analysis_dir, f"pareto_{stamp}.csv"), par,
+              ["condition", "policy", "success_rate", "incident_rate", "mean_total_cost",
+               "pareto_optimal", "dominated_by"])
+    counts = defaultdict(lambda: [0, 0])      # policy -> [pareto_optimal_cells, total]
+    front = defaultdict(set)                   # condition -> {policies on frontier}
+    for r in par:
+        counts[r["policy"]][1] += 1
+        if r["pareto_optimal"]:
+            counts[r["policy"]][0] += 1
+            front[r["condition"]].add(r["policy"])
+    ihm = [c for c in front if (m := _COND_RE.match(c))
+           and m.group(4) == "I" and m.group(3) in ("hostile", "mixed")]
+    ccr_front = sum(1 for c in ihm if "ccr" in front[c])
+    both = sum(1 for c in ihm if {"ccr", "optimistic_fallback"} <= front[c])
+    print(f"Pareto: CCR is non-dominated in {ccr_front}/{len(ihm)} indistinguishable "
+          f"hostile/mixed cells; CCR & optimistic_fallback are BOTH on the frontier in "
+          f"{both} of them (incomparable without pricing incidents -> lambda_r sweep).")
+    for p in sorted(counts, key=lambda p: -counts[p][0]):
+        print(f"  {p:20} Pareto-optimal in {counts[p][0]:3}/{counts[p][1]} cells")
 
 
 if __name__ == "__main__":
