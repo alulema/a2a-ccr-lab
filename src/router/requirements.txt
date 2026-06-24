@@ -4,5 +4,8 @@ azure-functions
 azure-storage-blob>=12.19
 azure-identity>=1.16
 # ccrlib (the scientific core) is pure-stdlib and is vendored into this folder by
-# scripts/sync_lib at package time — no pip dependency. The A2A HTTP client uses
-# stdlib urllib, so no requests/httpx dependency is needed.
+# scripts/sync_lib at package time — no pip dependency.
+# The A2A HTTP client pools a keep-alive connection across the ~1000s of sequential
+# calls per run (stdlib urllib opens a fresh TCP+TLS connection each call, which alone
+# pushes a single synchronous run past the ~230s gateway ceiling — see Devlog D4).
+requests>=2.31
