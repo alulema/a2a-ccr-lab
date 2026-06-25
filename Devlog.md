@@ -331,6 +331,32 @@ just in a single process).
 - **Determinism:** AOAI embeddings are deterministic per model snapshot; the only loss of
   hermeticity is the model version, pinned via deployment + api-version.
 
+### R11 — Final numbers: post-#3 tie-break + real AOAI embeddings + embedding-in-baselines
+- **Run:** full 120-cell factorial via `local_run.py --seeds 6 --tasks 24` (n=144/cell)
+  with the honest random tie-break (#3) AND real `text-embedding-3-small` vectors (#2,
+  local via `az login` + DefaultAzureCredential; AOAI account `oai-mbsr5z56tjkhy`). Then
+  `analyze.py --ci` and `lambda_r_sweep.py` with **`embedding` added to the baseline set**.
+- **Real embeddings changed the embedding baseline a lot:** incident 0.083→**0.000**,
+  success 0.52→0.556. Real semantic routing avoids the *crudely keyword-stuffed*
+  adversarial cards → zero incidents — making it the **strongest safety baseline**. So we
+  added it to the rq2/lambda_r/significance baseline sets (excluding it was no longer
+  honest). Caveat for the paper: this is contingent on naive adversary card-authoring; a
+  natural on-topic adversarial description would defeat semantic routing, whereas CCR's
+  capability-probe is invariant to card wording.
+- **Final headline (V5_k0.2_mixed_I):** ccr 0.944/inc 0.139, optimistic 0.972/inc 0.722,
+  embedding 0.556/inc 0.000, attestation 0.347/inc 0.451. CCR is the only policy high on
+  both success and safety.
+- **Against the hardest baseline set, CCR holds its region:** RQ2 7/20 mixed_I, but in the
+  high-value region (V≥5, κ≤0.2) **CCR wins 12/12** and is **significant in 10/12**
+  (paired bootstrap). λ_r caveat now just **4 cells** (all vs optimistic), flip at
+  [2.45, 3.35]. Pareto frontier = {optimistic (112/120), embedding (80/120), ccr (50/120)};
+  attestation/card **0/120** (dominated). CCR loses only at low value / expensive probe,
+  to a genuinely-safer embedding — an honest boundary, not a pricing artifact.
+- **Devil's-advocate verdict: satisfied.** CCR survives the strongest baseline (real
+  semantic routing with zero incidents) in its intended high-value region, with CIs and an
+  honest account of where and why it loses. `paper/evidence-section.md` updated to these
+  numbers (RQ1–RQ4, λ_r, Pareto) + the semantic-baseline contingency.
+
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
   n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.

@@ -19,10 +19,15 @@ verifiable canary outputs). Ground-truth persona (`correct`, `degraded`,
 outcomes, never inside a policy.
 
 We compare six policies: `random` (control), `card_only` (argmax card score),
-`embedding` (semantic match, trust-agnostic), `attestation_only` (best card among
-signature-valid agents — the "verified identity" line), `optimistic_fallback` (try the
-best card, fall through on failure up to budget; the hard no-probe baseline), and `ccr`
-(VoI-gated canary probing followed by expected-utility delegation).
+`embedding` (semantic match by cosine similarity of task text to card description, using
+**real Azure OpenAI `text-embedding-3-small` vectors** — trust-agnostic),
+`attestation_only` (best card among signature-valid agents — the "verified identity"
+line), `optimistic_fallback` (try the best card, fall through on failure up to budget;
+the hard no-probe baseline), and `ccr` (VoI-gated canary probing followed by
+expected-utility delegation). When two validly-signed agents declare the same capability
+(a stale honest provider and a defector both at the ceiling), a router has no basis to
+prefer one, so all card-score selections break ties **uniformly at random (seeded)** —
+modelling the absence of signal rather than resolving it by an artifact of agent order.
 
 **Metrics.** A run yields `success` (task solved), `total_cost` (real executions plus
 canaries, in execution-cost units), and two ground-truth labels: an **incident** — *any*
@@ -49,69 +54,69 @@ in-process numbers exactly.
 ## RQ1 — Effectiveness
 
 In the representative hostile-mixed cell ($V{=}5$, $\kappa{=}0.2$, indistinguishable
-canaries), CCR matches the strongest baseline's task success while cutting incidents
-roughly fivefold:
+canaries), CCR is the only policy that is **simultaneously high-success and low-incident**:
 
 | policy | success | net utility | incident rate | mean canaries |
 |---|---|---|---|---|
-| **ccr** | 0.951 | **2.53** | **0.090** | 4 |
-| optimistic_fallback | 0.958 | 1.89 | 0.486 | 0 |
-| attestation_only | 0.514 | 1.57 | 0.000 | 0 |
-| card_only | 0.514 | 1.57 | 0.000 | 0 |
-| embedding | 0.472 | 1.19 | 0.083 | 0 |
-| random | 0.472 | 0.56 | 0.403 | 0 |
+| **ccr** | 0.944 | **2.35** | 0.139 | 4 |
+| optimistic_fallback | 0.972 | 1.42 | 0.722 | 0 |
+| embedding | 0.556 | 1.78 | **0.000** | 0 |
+| random | 0.514 | 0.75 | 0.410 | 0 |
+| attestation_only | 0.347 | −0.17 | 0.451 | 0 |
+| card_only | 0.347 | −0.17 | 0.451 | 0 |
 
-`optimistic_fallback` reaches comparable success only by *executing* on agents until one
-works — touching a malicious agent on $48.6\%$ of tasks. The attestation/card baselines
-avoid incidents but solve barely half the tasks: they buy safety by **under-routing**,
-refusing any task whose only declared-capable agents are unverifiable. CCR is the single
-policy that is simultaneously high-success and low-incident, because the VoI gate spends
-a synthetic, side-effect-free probe *before* delegating, and the prior-doubt floor in the
-VoI forces it to probe even confident-looking cards.
+Each baseline fails on at least one axis. `optimistic_fallback` reaches the highest
+success only by *executing* on agents until one works — touching a malicious agent on
+$72\%$ of tasks. `embedding` (real semantic routing) is the safest baseline, achieving
+**zero incidents** by steering toward honest-looking descriptions and away from the
+keyword-stuffed adversarial cards — but it completes only $56\%$ of tasks, because it has
+no way to tell a *capable* honest agent from a *degraded* one, and no probe. Strikingly,
+`attestation_only` / `card_only` now fail on **both** axes (success 0.35, incidents 0.45):
+identity verification gives **no signal** to separate a validly-signed defector from an
+honest provider when both declare the ceiling capability — the Provenance Paradox in full.
+CCR alone resolves the tension, because the VoI gate spends a synthetic, side-effect-free
+probe *before* delegating, and the prior-doubt floor forces it to probe even
+confident-looking cards.
 
 We quantify uncertainty with a cluster bootstrap by task (the $n{=}144$ runs per cell are
-24 tasks $\times$ 6 seeds over a fixed pool, not 144 independent draws; 95% CI, $B{=}2000$).
-The comparison that survives is precise: CCR's task success $[0.910, 0.986]$ is
-**statistically indistinguishable** from `optimistic_fallback`'s $[0.924, 0.986]$, while
-its incident rate $[0.049, 0.139]$ is **disjoint** from `optimistic_fallback`'s
-$[0.382, 0.590]$. The robust claim is therefore *not* that CCR completes more tasks, but
-that it attains the **same** success at a **significantly lower incident rate** — it
-removes exposure without sacrificing throughput.
+24 tasks $\times$ 6 seeds over a fixed pool, not 144 independent draws; 95% CI, $B{=}1000$).
+CCR's task success $[0.903, 0.979]$ **overlaps** `optimistic_fallback`'s $[0.938, 1.000]$
+(parity, not superiority) while its incident rate $[0.083, 0.194]$ is **disjoint and far
+below** `optimistic_fallback`'s $[0.653, 0.806]$. Against the safe baseline the trade
+reverses: CCR's success is **disjoint and far above** `embedding`'s $[0.424, 0.681]$,
+while `embedding`'s incidents $[0.000, 0.000]$ are below CCR's. CCR thus buys a large
+amount of task completion for a small, bounded amount of exposure — the only point on the
+frontier that is high on both axes.
 
 ## RQ2 — When does verification pay?
 
 Probing is not free, so CCR should win only when the value at stake justifies the canary
-cost. Sweeping $V\times\kappa$ over the mixed pool with indistinguishable canaries yields
-a clean cost–benefit frontier (net-utility winner per cell):
+cost. We sweep $V\times\kappa$ over the mixed pool with indistinguishable canaries and
+take the net-utility winner per cell **against the full baseline set, including the strong
+zero-incident `embedding` router** (its inclusion is what makes this the hard test).
 
-| $V \backslash \kappa$ | 0.05 | 0.1 | 0.2 | 0.4 | 0.6 |
-|---|---|---|---|---|---|
-| 1 | ATT | ATT | ATT | ATT | ATT |
-| 2 | **CCR** | **CCR** | ATT | ATT | ATT |
-| 5 | **CCR** | **CCR** | **CCR** | OPT | OPT |
-| 10 | **CCR** | **CCR** | **CCR** | OPT | OPT |
-
-CCR is the net-utility winner in **8/20** cells, and the boundary is monotone: the
-higher the value, the higher the canary cost CCR can absorb. At $V{=}1$ probing never
-pays; at $V{\ge}5$ it pays up to $\kappa{=}0.2$. This is the intended result — CCR is a
-tool for *valuable* delegations, and the experiment locates exactly where that is.
-
-We do not over-read this count. A paired cluster bootstrap (CCR − best baseline, paired by
-task) finds the net-utility advantage **significant and positive in 7 of the 12**
-high-value indistinguishable cells ($V{\ge}5$, $\kappa{\le}0.2$); the remaining margins
-fall within task-level noise. The net-utility *winner* is thus a regime- and
-significance-qualified statement, and it additionally depends on how an incident is priced
-(§\,$\lambda_r$). The quantity that is significant throughout — and the one we lead with —
-is the incident reduction of §RQ1, not the net-utility margin.
+CCR is the net-utility winner in **7/20** cells, concentrated in a clean high-value /
+cheap-probe region: across the high-value cells ($V{\ge}5$, $\kappa{\le}0.2$, hostile and
+mixed) **CCR wins 12/12** at the default $\lambda_r{=}2$, and a paired cluster bootstrap
+(CCR − best baseline, by task) finds its advantage **significant and positive in 10 of
+those 12**. CCR *loses* exactly where it should: at low value ($V{\le}2$) or expensive
+probes ($\kappa{\ge}0.4$), where the winner is either `embedding` — which is genuinely
+safer (zero incidents) but completes far fewer tasks — or `optimistic_fallback`, whose win
+is an artifact of under-priced incidents that the $\lambda_r$ analysis below dissolves.
+The frontier is therefore honest in both directions: CCR earns its keep on valuable
+delegations and concedes the rest. (The full per-cell winner grid is in the supplementary
+`rq2_costbenefit` table.) The quantity that is significant throughout — and the one we
+lead with — is the incident reduction of §RQ1, not a raw winner count.
 
 ## RQ3 — Robustness to honest degradation
 
-Attestation verifies *identity*, not *current capability*. In the clean pool, the
-honest-but-degraded provider is correctly signed but ships a stale card, so
-`attestation_only` and `card_only` select it and fail ($\text{success}{=}0.514$). CCR's
-empirical probe detects the capability gap and routes around it
-($\text{success}{=}1.0$, $U{=}3.16$), confirming that declarative evidence — even
-*verified* declarative evidence — is insufficient when capability drifts.
+Attestation verifies *identity*, not *current capability*. In the clean pool (honest
+agents only), the degraded provider is correctly signed but ships a stale card claiming
+ceiling capability, so `attestation_only` and `card_only` select it and fail
+($\text{success}{=}0.556$). CCR's empirical probe detects the capability gap and routes to
+a genuinely capable agent ($\text{success}{=}0.986$, $U{=}3.05$), confirming that
+declarative evidence — even *verified* declarative evidence — is insufficient when
+capability drifts.
 
 ## RQ4 — Strategic defection: a model, and the condition for defeating it
 
@@ -124,8 +129,8 @@ ability to selectively pass:
 
 | CCR canary | defection rate | incident rate | success |
 |---|---|---|---|
-| distinguishable (D) | 0.875 | 0.993 | 0.757 |
-| indistinguishable (I) | 0.056 | 0.090 | 0.951 |
+| distinguishable (D) | 0.854 | 1.000 | 0.812 |
+| indistinguishable (I) | 0.111 | 0.139 | 0.944 |
 
 **We are explicit about what this does and does not establish.** It is *not* empirical
 evidence that real canaries are indistinguishable — distinguishability is an exogenous
@@ -135,7 +140,7 @@ modeling choice (the $D$ column is the adversary obeying "I can tell"). What the
 strictly worse than no probe — the adversary evades it *and* CCR pays the cost (net
 utility goes negative); and (ii) the entire security value of probing is contingent on a
 single property — probe indistinguishability — which therefore must be *constructed and
-defended*, not assumed. The residual incident rate under $I$ (0.090) is itself
+defended*, not assumed. The residual incident rate under $I$ (0.139) is itself
 instructive: it is not zero because the modeled adversary still passes an indistinguishable
 probe at its true success rate ($\approx 0.12$) by chance, so probing bounds — but does not
 eliminate — exposure to a defector that occasionally performs. We therefore frame
@@ -159,31 +164,47 @@ not a general claim: with a capable-but-risky provider $\lambda_r$ would change 
 choice.)
 
 Across the indistinguishable hostile/mixed cells where a baseline out-scores CCR at
-$\lambda_r{=}2$ despite more incidents (nine cells), CCR becomes the net-utility winner
-once an incident is priced at $\lambda_r^\star\in[2.6,\,5.8]$ (median $4.3$) — only
-modestly above the default. The few cells that never flip ($V{=}5$, $\kappa\in\{0.4,0.6\}$)
-are an honest economic boundary: there the strongest baseline is `attestation_only`,
-which attains *zero* incidents by abstention, and CCR's residual incident rate plus
-expensive canaries cannot beat a zero-incident abstainer at moderate value. CCR is
-correctly *not* recommended there. The takeaway for the paper's tables: report
-`incident_rate` beside net utility and show the crossover, rather than a single-$\lambda_r$
-ranking that silently rewards cheap success over safety.
+$\lambda_r{=}2$ *despite more incidents* — **four cells, all won by `optimistic_fallback`**
+(incident $0.72$ vs CCR's $\approx0.15$) — CCR becomes the net-utility winner once an
+incident is priced at $\lambda_r^\star\in[2.45,\,3.35]$ (median $3.08$), only modestly
+above the default. Crucially, the cells where CCR instead loses to `embedding` are **not**
+in this set: `embedding` wins them with *fewer* incidents (zero), so those losses are not
+pricing artifacts but the honest boundary where a zero-incident semantic router is
+genuinely preferable to paying for a probe — provided the adversary's card is
+semantically separable (the contingency discussed with the Pareto view below). The
+takeaway for the paper's tables:
+report `incident_rate` beside net utility and show the crossover; the only "wins" that
+dissolve under realistic incident pricing are `optimistic_fallback`'s cheap-but-unsafe
+ones.
 
 ## A parameter-free view: Pareto dominance
 
 To avoid resting any claim on a chosen weight, we also report Pareto dominance over
 (success $\uparrow$, incident $\downarrow$, cost $\downarrow$). CCR is **non-dominated in
-37/40** indistinguishable hostile/mixed cells — on the frontier exactly where it is meant
-to operate. In **28/40** of these, CCR and `optimistic_fallback` are *both* non-dominated:
-CCR buys fewer incidents with canary cost, `optimistic_fallback` buys cheapness with
-incidents, so they are **incomparable without pricing an incident** — which is precisely
-the trade-off the $\lambda_r$ crossover resolves in CCR's favor under any realistic price.
-The Pareto view and the $\lambda_r$ sweep are thus two halves of one argument, neither
-using an arbitrary weight. Two corollaries justify our baseline set: `embedding` is
-Pareto-optimal in **0/120** cells (always dominated) and `random` in only $40/120$, while
-CCR is on the frontier in $58/120$ overall — correctly *dominated* in clean pools, where
-the canary is pure overhead. That CCR is not everywhere on the frontier is the
-self-consistent result: it earns the frontier only where verification pays.
+36/40** indistinguishable hostile/mixed cells — on the frontier exactly where it is meant
+to operate. The frontier is occupied by three genuinely incomparable strategies, each a
+different corner: `optimistic_fallback` (highest success, highest incidents;
+Pareto-optimal in $112/120$ cells), `embedding` (zero incidents, lowest success;
+$80/120$), and **CCR** (high on both axes; $50/120$). `attestation_only` and `card_only`
+are Pareto-optimal in **0/120** — dominated everywhere, because a zero-signal identity
+check is strictly worse than semantic routing here. That CCR is non-dominated in only half
+the cells overall is the *self-consistent* result: it is correctly dominated in clean
+pools (the canary is pure overhead) and at low value, and it earns the frontier where its
+success-and-safety balance is irreplaceable. Choosing between the three frontier corners
+requires pricing an incident — which is exactly what the $\lambda_r$ sweep does, resolving
+it in CCR's favor across the high-value region.
+
+**The contingency of the semantic baseline.** `embedding`'s zero-incident showing deserves
+scrutiny, because it is the strongest safety competitor. It achieves it by routing away
+from the adversarial cards — which in our benchmark are *crudely keyword-stuffed* ("Best
+$X$ expert … guaranteed top quality"), and therefore embed *unlike* a genuine task. A
+sophisticated adversary that writes a natural, on-topic description would embed close to
+the honest agents and defeat semantic routing — whereas CCR's probe tests *capability*,
+not description, and is invariant to how well the card is written. `embedding`'s safety is
+thus contingent on naive adversary card-authoring; CCR's is not. We report `embedding`
+with real `text-embedding-3-small` vectors precisely so this comparison is honest rather
+than a strawman, and we flag the contingency as the limit of what a semantic baseline
+establishes.
 
 ## Distributed validation and threats to validity
 
