@@ -30,7 +30,8 @@ It answers the paper's four research questions with hard numbers:
 
 ```
 ccrlib/            Pure-Python scientific core (no Azure deps)
-  domain.py        skills, deterministic RNG, verifiable tasks, signatures, embeddings
+  domain.py        skills, deterministic RNG, verifiable tasks, signatures, hash embedding
+  embeddings.py    embedding provider — real Azure OpenAI vectors (env) or hash fallback
   scenario.py      parameterized world builder (claim_gap, persona mix) — sweep axis
   agents.py        SimAgent: HIDDEN capability model + 4 personas (router never imports)
   scoring.py       card/canary/risk scores, value-of-information, expected utility
@@ -42,21 +43,26 @@ src/agents/        Azure Function App — A2A agent host (well-known card + JSON
 src/router/        Azure Function App — CCR router / experiment harness over A2A HTTP
 infra/             Bicep: Flex Consumption Functions, Storage, App Insights, RBAC
 scripts/           gen_dataset, local_run, sensitivity, sync_lib, seed_data, run_experiment
-analysis/          analyze.py -> CSVs; EVIDENCE.md + SENSITIVITY.md (generated tables)
+analysis/          analyze.py (+ --ci), lambda_r_sweep.py -> CSVs; EVIDENCE/SENSITIVITY.md
 data/              tasks.json, agents.json, results/
 ```
 
-## Run the evidence locally (no Azure, ~10s)
+## Reproduce the evidence
+
+Full step-by-step, expected numbers, and the optional real-embeddings / distributed-cloud
+paths live in **[`REPRODUCE.md`](REPRODUCE.md)**. The hermetic core needs no Azure and no
+third-party packages:
 
 ```bash
-python scripts/local_run.py --seeds 3 --tasks 48   # RQ1-RQ4 headline grid
-python analysis/analyze.py                          # CSV summaries
-python scripts/sensitivity.py --seeds 3 --tasks 36  # robustness sweep (RQ2 hardening)
+python scripts/local_run.py --seeds 6 --tasks 24    # full 120-cell factorial, n=144/cell
+python analysis/analyze.py --ci                      # summaries, RQ2 winners, Pareto, 95% CIs
+python analysis/lambda_r_sweep.py                    # incident-pricing crossover
+python scripts/sensitivity.py --seeds 6 --tasks 24   # robustness sweep (RQ2 hardening)
 ```
 
-Outputs `analysis/EVIDENCE.md` (RQ1–RQ4 tables), `analysis/SENSITIVITY.md` (sweep),
-`data/results/raw.jsonl`, and `analysis/summary.csv` + `analysis/rq2_costbenefit.csv`
-+ `analysis/sensitivity.csv`.
+Generated outputs (`analysis/*_<ts>.csv`, `data/results/`, `analysis/EVIDENCE.md`) are
+git-ignored and recreated by the commands above. The paper's written analysis is
+`paper/evidence-section.md`; the engineering log is `Devlog.md`.
 
 ### The incident model (why probing beats retrying)
 
@@ -69,70 +75,56 @@ invoking a malicious agent causes harm **at invocation time, whether or not it l
 it safely (no incident). An incident is therefore charged for **any real execution
 that touches a malicious agent** (`ccrlib/metrics.py`).
 
-### What the current run shows (seeds=3, tasks=48)
+### Headline result (full 120-cell factorial, real embeddings)
 
-- **RQ1 (mixed pool, V=5, κ=0.2):** CCR has the best net utility (**2.53**) at low
-  incident rate (**0.09**). `card_only`/`attestation_only` are fooled by a
-  trusted-signed liar (success **0.51**). `optimistic_fallback` recovers success
-  (0.96) but **executes liars** → incident rate **0.49**. *Attestation alone is not
-  enough; cheap retry is not safe.*
-- **RQ2:** CCR is the net-utility winner in **8/20** `(V, κ)` cells — high task value
-  and cheap probes. It loses when κ is large or V is low: verifying can cost more than
-  it saves. **This boundary is the paper's central, defensible result.**
-- **RQ3 (degradation):** CCR robust vs card/attestation routing (which pick the
-  stale-card degraded agent and fail).
-- **RQ4 (defection):** a canary-aware defector beats a *distinguishable* probe in
-  **87.5%** of runs (incident 0.99); making the probe **indistinguishable drops
-  defection to 5.6%** (incident 0.09) and lifts success 0.76 → 0.95.
+- **RQ1** (`V5_k0.2_mixed_I`): CCR is the only policy high on **both** axes — success
+  **0.944**, incident **0.139**. `optimistic_fallback` recovers success (0.97) but
+  *executes* liars (incident **0.72**); `attestation_only`/`card_only` collapse (0.35 /
+  0.45) — a verified identity gives no signal to separate a signed defector from an honest
+  agent; real `embedding` is the safest baseline (incident **0.00**) but completes only
+  **0.56**.
+- **RQ2:** CCR wins the high-value region (V≥5, κ≤0.2) **12/12** at λ_r=2, significant in
+  **10/12** (paired bootstrap); it concedes low-value / expensive-probe cells, honestly.
+- **RQ3 (degradation):** CCR robust (0.99) vs card/attestation (0.56), which pick the
+  stale-card degraded agent and fail.
+- **RQ4 (defection):** indistinguishable probes cut canary-aware defection 0.85 → **0.11**
+  (incident 1.00 → **0.14**).
+
+Full tables, confidence intervals, the λ_r crossover and the Pareto view are in
+`paper/evidence-section.md`; exact reproduction numbers in `REPRODUCE.md`.
 
 ### Sensitivity sweep — `python scripts/sensitivity.py`
 
-Hardens RQ2 against "you calibrated to win". Reports CCR's net-utility advantage over
-the best baseline in the **high-stakes region** (V≥5, κ≤0.2) as the world and the
-method's hyperparameters vary (`analysis/SENSITIVITY.md`, `analysis/sensitivity.csv`):
+Hardens RQ2 against "you calibrated to win": it reports CCR's net-utility advantage over
+the best baseline in the high-stakes region (V≥5, κ≤0.2) as the world and the method's
+hyperparameters (`claim_gap`, `malice`, `alpha`, `lambda_c`, `lambda_r`, `voi_threshold`)
+vary. The decisive test is **`claim_gap`**: CCR's advantage grows *monotonically* with
+card unreliability and ~vanishes in an honest world (gap=0) — so the win comes from cards
+being unreliable, not from a hand-tuned calibration. Tables and the robustness verdict are
+written to `analysis/SENSITIVITY.md`.
 
-- **claim_gap (decisive):** CCR's region advantage grows **monotonically** with card
-  unreliability — from **−0.59 in an honest world (gap=0)** to **+0.72 with region
-  win-rate 1.0 (gap=1)**. CCR wins *because cards are unreliable*, not because of a
-  hand-tuned calibration; in an honest world it isn't needed and barely hurts.
-- **malice:** advantage grows with hostility, non-monotonically — the *threat type*
-  matters: a bad-signature liar is filtered cheaply by attestation; only the
-  trusted-signed defector needs the canary, and that's where CCR pulls ahead.
-- **alpha:** region win-rate is **1.0 across α ∈ [0.1, 0.9]** — robust to its main
-  hyperparameter.
-- **lambda_c / voi_threshold:** behave as designed (cost price and probe-coverage
-  trade-offs). A *prior floor of doubt* in the VoI gate (`voi_prior_doubt`) is what
-  stops a confident-looking liar (card≈0.99) from evading verification.
+> These are simulation numbers from a calibrated agent pool; the sweep shows the
+> conclusions are not a calibration artifact. State the calibration when citing (see
+> "Threats to validity").
 
-> These are simulation numbers from a calibrated agent pool. They demonstrate the
-> *mechanism and the regimes*; the sweep shows the conclusions are not a calibration
-> artifact. The paper must still state the calibration (see "Threats to validity").
+## Deploy to Azure (distributed A2A validation)
 
-## Deploy to Azure
+`bash scripts/deploy.sh eastus` provisions the full stack and publishes both Function Apps;
+`bash scripts/run_experiment.sh` then runs the validation subset over real A2A HTTP. Full
+steps — including the AOAI / real-embeddings path and teardown — are in
+[`REPRODUCE.md`](REPRODUCE.md) §2–§3. Provisions (see `infra/`):
 
-Prerequisites: `azd`, `az`, an Azure subscription, Python 3.11.
-
-```bash
-azd auth login
-azd up                 # provisions infra, vendors ccrlib, deploys both Function Apps
-                       # postprovision seeds data/*.json into the 'data' container
-pwsh scripts/run_experiment.ps1 -Seeds 2 -Tasks 12
-```
-
-`azd up` provisions (see `infra/`):
 - **Storage** (keyless — managed identity only) with `data` + `results` containers.
 - **App Insights + Log Analytics** for tracing routing decisions and canary calls.
-- A shared **Flex Consumption** plan and two **Function Apps**:
+- Two **Function Apps**, each on its own **Flex Consumption** plan:
   - `agents` — hosts every persona at `/agents/{id}/.well-known/agent-card.json` and
     `/agents/{id}/a2a` (JSON-RPC).
   - `router` — discovers cards over HTTP and runs the policy suite via real A2A calls.
-- **RBAC**: each app's managed identity gets Storage Blob Data Owner + Queue Data
-  Contributor. No account keys anywhere.
+- **Azure OpenAI** (`text-embedding-3-small`) backing the real-embedding baseline.
+- **RBAC**: managed-identity Storage Blob Data Owner + Queue Data Contributor + Cognitive
+  Services OpenAI User. No account keys anywhere.
 
-Validate the Bicep before deploying:
-```bash
-az bicep build --file infra/main.bicep
-```
+Validate the Bicep before deploying: `az bicep build --file infra/main.bicep`.
 
 ## Scaling to "irrefutable" size
 
@@ -149,3 +141,7 @@ az bicep build --file infra/main.bicep
 - Canary representativeness vs cost is modeled abstractly via `κ` and the
   distinguishability flag; a real deployment must measure actual probe cost.
 - Success is a verifiable synthetic function; real tasks need task-specific oracles.
+- The `embedding` baseline's zero-incident result is contingent on adversaries being
+  *semantically* separable (naive keyword-stuffing); a sophisticated adversary with a
+  natural description would defeat semantic routing — but not CCR's capability-probe,
+  which is invariant to card wording.
