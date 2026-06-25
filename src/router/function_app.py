@@ -128,14 +128,6 @@ def _pool(all_specs, personas):
     return [s for s in all_specs if s["persona"] in personas]
 
 
-# Full factorial (the evidence base): value V x canary cost kappa x agent pool x canary
-# (in)distinguishability = 4 x 5 x 3 x 2 = 120 conditions. Reconstructed from the committed
-# raw run after the original (uncommitted) grid was lost — pool composition recovered from
-# the data (see _pools).
-_GRID_VALUES = [1, 2, 5, 10]
-_GRID_KAPPAS = [0.05, 0.1, 0.2, 0.4, 0.6]
-
-
 def _params(value: float, kappa: float) -> Params:
     # Budget = 2*exec_cost + k_candidates*kappa + margin, so the router can always afford
     # to canary all k_candidates and still execute + retry. With the defaults
@@ -144,9 +136,10 @@ def _params(value: float, kappa: float) -> Params:
 
 
 def _pools(all_specs):
+    # Pool composition MUST match scripts/local_run.pool_specs (the in-process evidence
+    # base) so the cloud validates against the same conditions.
     # clean   : benign only (correct + degraded) — malice fraction 0.0
-    # hostile : drop the second 'correct' agent per skill (org 'fabrikam'), raising the
-    #           malice fraction to 0.5 (vs mixed's 0.4)
+    # hostile : drop the second 'correct' agent per skill (org 'fabrikam') -> malice 0.5
     # mixed   : the full pool (2 correct, 1 degraded, 1 adversarial, 1 canary_aware /skill)
     return {
         "clean": _pool(all_specs, {"correct", "degraded"}),
@@ -156,20 +149,31 @@ def _pools(all_specs):
     }
 
 
+# The FULL 120-cell factorial (V x kappa x pool x canary) is the evidence base, generated
+# in-process by scripts/local_run.py. The CLOUD run only needs to show the distributed A2A
+# path reproduces those numbers, so it runs a representative SUBSET that fits under the
+# ~230s synchronous-POST gateway limit — the headline cells the paper reports. (V, kappa,
+# pool, canary):
+_VALIDATION = [
+    (5, 0.2, "clean", "I"), (5, 0.2, "clean", "D"),       # RQ3 (degraded) + control
+    (5, 0.2, "mixed", "I"), (5, 0.2, "mixed", "D"),       # RQ1 / RQ4 headline
+    (5, 0.2, "hostile", "I"), (5, 0.2, "hostile", "D"),   # higher-malice variant
+    (10, 0.05, "mixed", "I"), (10, 0.6, "mixed", "I"),    # RQ2 cost-benefit corners
+    (1, 0.2, "mixed", "I"), (2, 0.1, "mixed", "I"),        # low-value corners
+]
+
+
 def _headline_conditions(all_specs):
     pools = _pools(all_specs)
-    conds = []
-    for v in _GRID_VALUES:
-        for k in _GRID_KAPPAS:
-            for pool_name, specs in pools.items():
-                for canary, indist in (("I", True), ("D", False)):
-                    conds.append({
-                        "name": f"V{v}_k{k}_{pool_name}_{canary}",
-                        "specs": specs,
-                        "indistinguishable": indist,
-                        "params": _params(v, k),
-                    })
-    return conds
+    return [
+        {
+            "name": f"V{v}_k{k}_{pool}_{canary}",
+            "specs": pools[pool],
+            "indistinguishable": canary == "I",
+            "params": _params(v, k),
+        }
+        for (v, k, pool, canary) in _VALIDATION
+    ]
 
 
 @app.route(route="experiment/run", methods=["POST"])
