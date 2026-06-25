@@ -111,7 +111,7 @@ def pareto(summary):
 
 def rq2_costbenefit(summary):
     by = {(s["condition"], s["policy"]): s for s in summary}
-    pols = ["ccr", "optimistic_fallback", "attestation_only", "card_only"]
+    pols = ["ccr", "optimistic_fallback", "attestation_only", "card_only", "embedding"]
     # Discover the (V, kappa) grid from the mixed_I condition names actually present.
     pat = re.compile(r"^V(\d+)_k([\d.]+)_mixed_I$")
     cells = sorted({
@@ -189,7 +189,7 @@ def confidence(rows, analysis_dir, stamp, n_boot=1000):
 
     # (b) Paired significance of CCR's net-utility advantage over the best baseline,
     # per condition (paired by task — the right test for "is the advantage real?").
-    base_set = ["optimistic_fallback", "attestation_only", "card_only"]
+    base_set = ["optimistic_fallback", "attestation_only", "card_only", "embedding"]
     out = []
     for c in sorted({cc for (cc, _) in by_cell}):
         ccr = by_cell.get((c, "ccr"))
@@ -252,7 +252,8 @@ def main():
                "mean_total_cost", "incident_rate", "defection_rate", "mean_canaries"])
     cb = rq2_costbenefit(summary)
     write_csv(os.path.join(analysis_dir, f"rq2_costbenefit_{stamp}.csv"), cb,
-              ["V", "kappa", "ccr", "optimistic_fallback", "attestation_only", "card_only", "winner"])
+              ["V", "kappa", "ccr", "optimistic_fallback", "attestation_only", "card_only",
+               "embedding", "winner"])
     ccr_wins = sum(1 for r in cb if r["winner"] == "ccr")
     print(f"RQ2: CCR is the net-utility winner in {ccr_wins}/{len(cb)} (V, kappa) cells.")
 

@@ -41,7 +41,7 @@ RESULTS_DIR = os.path.join(ROOT, "data", "results")
 LAMBDA_C = 1.0           # price of cost used in the runs (metrics.py default)
 DEPLOYED_LAMBDA_R = 2.0  # the lambda_r the factorial actually ran with
 # Baselines compared against (matches analyze.rq2_costbenefit; the strong-baseline set).
-BASELINES = ["optimistic_fallback", "attestation_only", "card_only"]
+BASELINES = ["optimistic_fallback", "attestation_only", "card_only", "embedding"]
 # lambda_r values written to the CSV (the crossover is found on a finer internal grid).
 LAMBDAS_OUT = [0.0, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0, 24.0]
 
