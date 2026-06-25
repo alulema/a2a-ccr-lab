@@ -22,9 +22,18 @@ src/router/ccrlib/
 src/agents/data/
 src/router/data/
 
-# Generated results.
-# Raw runs ARE versioned (git is the history — commit data/results/raw.json per run).
-# Analysis CSVs are timestamped (summary_<ts>.csv, rq2_costbenefit_<ts>.csv) and tracked.
-# Only the transient local JSONL conversion and the sensitivity sweep stay untracked.
-data/results/raw.jsonl
+# Generated, reproducible artifacts — NOT versioned (recreate from raw + code via
+# analysis/analyze.py, lambda_r_sweep.py, scripts/sensitivity.py). Keeps the repo free of
+# CSV churn. Run data lives in data/results/ locally and is archived out-of-repo when worth
+# keeping for conclusions.
+data/results/
+analysis/summary.csv
+analysis/summary_*.csv
+analysis/rq2_costbenefit.csv
+analysis/rq2_costbenefit_*.csv
+analysis/pareto_*.csv
+analysis/significance_*.csv
+analysis/lambda_r_sweep_*.csv
+analysis/lambda_r_crossover_*.csv
 analysis/sensitivity.csv
+infra/main.json
