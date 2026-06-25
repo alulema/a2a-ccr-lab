@@ -128,37 +128,47 @@ def _pool(all_specs, personas):
     return [s for s in all_specs if s["persona"] in personas]
 
 
-# RQ2 cost-benefit grid. Sweep value V x canary cost kappa over the mixed pool with
-# indistinguishable canaries — the regime where CCR's probing can pay off — so the
-# crossover (where CCR goes from net-negative to net-positive vs baselines) is visible.
-_GRID_VALUES = [3, 5, 8, 10]
-_GRID_KAPPAS = [0.05, 0.1, 0.2]
+# Full factorial (the evidence base): value V x canary cost kappa x agent pool x canary
+# (in)distinguishability = 4 x 5 x 3 x 2 = 120 conditions. Reconstructed from the committed
+# raw run after the original (uncommitted) grid was lost — pool composition recovered from
+# the data (see _pools).
+_GRID_VALUES = [1, 2, 5, 10]
+_GRID_KAPPAS = [0.05, 0.1, 0.2, 0.4, 0.6]
 
 
 def _params(value: float, kappa: float) -> Params:
     # Budget = 2*exec_cost + k_candidates*kappa + margin, so the router can always afford
     # to canary all k_candidates and still execute + retry. With the defaults
-    # (exec_cost=1, k_candidates=4, margin=1) this is 3.0 + 4*kappa, which reproduces the
-    # two original cells exactly (V3_k0.2 -> 3.8, V10_k0.05 -> 3.2).
+    # (exec_cost=1, k_candidates=4, margin=1) this is 3.0 + 4*kappa.
     return Params(value=value, canary_cost=kappa, budget=round(3.0 + 4.0 * kappa, 3))
 
 
+def _pools(all_specs):
+    # clean   : benign only (correct + degraded) — malice fraction 0.0
+    # hostile : drop the second 'correct' agent per skill (org 'fabrikam'), raising the
+    #           malice fraction to 0.5 (vs mixed's 0.4)
+    # mixed   : the full pool (2 correct, 1 degraded, 1 adversarial, 1 canary_aware /skill)
+    return {
+        "clean": _pool(all_specs, {"correct", "degraded"}),
+        "hostile": [s for s in all_specs
+                    if not (s["persona"] == "correct" and s["org"] == "fabrikam")],
+        "mixed": all_specs,
+    }
+
+
 def _headline_conditions(all_specs):
-    mixed = all_specs
-    clean = _pool(all_specs, {"correct", "degraded"})
+    pools = _pools(all_specs)
     conds = []
-    # RQ2 surface: V x kappa over the mixed pool, indistinguishable canaries.
     for v in _GRID_VALUES:
         for k in _GRID_KAPPAS:
-            conds.append({"name": f"V{v}_k{k}_mixed_I", "specs": mixed,
-                          "indistinguishable": True, "params": _params(v, k)})
-    # Boundary anchors kept for the narrative (Devlog/paper):
-    #   _mixed_D  -> distinguishable canaries: the probe is evaded (failure / neg. control)
-    #   _clean_I  -> no adversaries: canary spend is pure overhead
-    conds.append({"name": "V3_k0.2_mixed_D", "specs": mixed,
-                  "indistinguishable": False, "params": _params(3, 0.2)})
-    conds.append({"name": "V3_k0.2_clean_I", "specs": clean,
-                  "indistinguishable": True, "params": _params(3, 0.2)})
+            for pool_name, specs in pools.items():
+                for canary, indist in (("I", True), ("D", False)):
+                    conds.append({
+                        "name": f"V{v}_k{k}_{pool_name}_{canary}",
+                        "specs": specs,
+                        "indistinguishable": indist,
+                        "params": _params(v, k),
+                    })
     return conds
 
 
