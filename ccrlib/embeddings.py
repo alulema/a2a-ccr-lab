@@ -89,8 +89,18 @@ def embed(text: str) -> tuple[float, ...]:
     if text in _MEM:
         return _MEM[text]
     if _use_aoai():
-        vec = tuple(_aoai_embed(text))    # LIVE — canonical, real instance
-        _record(text, vec)                # record into the committable cache
+        try:
+            vec = tuple(_aoai_embed(text))   # LIVE — canonical, real instance
+        except Exception as e:               # noqa: BLE001 — re-raise with a fix hint
+            if "401" in str(e) or "PermissionDenied" in str(e) or "Forbidden" in str(e):
+                raise RuntimeError(
+                    "Azure OpenAI returned 401/PermissionDenied for embeddings. Grant your "
+                    "identity the 'Cognitive Services OpenAI User' role on the AOAI account "
+                    "(REPRODUCE.md §2a step 2.2) and wait ~1-2 min for RBAC to propagate; or "
+                    "unset AZURE_OPENAI_EMBEDDINGS_* to run with the cache/hash backend."
+                ) from e
+            raise
+        _record(text, vec)                   # record into the committable cache
     elif text in _disk():
         vec = tuple(_disk()[text])        # CACHE replay (offline reproduction)
     else:
