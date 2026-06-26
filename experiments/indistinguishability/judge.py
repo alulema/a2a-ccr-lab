@@ -17,11 +17,27 @@ from __future__ import annotations
 
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 
-JUDGE_CAP = 300              # max queries actually scored by the judge (subsampled, seeded)
+JUDGE_CAP = 150             # max queries actually scored by the judge (subsampled, seeded)
+WORKERS = 12               # concurrent chat calls (reasoning models are slow per call)
 _client = None
+
+
+def _pmap(fn, items, label):
+    """Parallel map over chat calls (I/O bound), in order, with coarse progress."""
+    out = [None] * len(items)
+    done = 0
+    with ThreadPoolExecutor(max_workers=WORKERS) as ex:
+        futs = {ex.submit(fn, x): i for i, x in enumerate(items)}
+        for f in as_completed(futs):
+            out[futs[f]] = f.result()
+            done += 1
+            if done % 50 == 0 or done == len(items):
+                print(f"      {label} {done}/{len(items)}", flush=True)
+    return out
 _GEN_SYS = ("You write short factual questions for a reading-comprehension benchmark. "
             "Given a target ANSWER, write ONE natural question, similar in style and length "
             "to typical such questions, whose correct answer is exactly that target. "
@@ -64,14 +80,14 @@ def _ask(system: str, user: str, budget: int = 512) -> str:
 
 
 def make_generator():
+    def one(q: dict) -> str:
+        try:
+            return _ask(_GEN_SYS, f"ANSWER: {q['answer']}") or q["question"]
+        except Exception:                           # noqa: BLE001 — fall back to a real question
+            return q["question"]
+
     def gen(qa_items: list[dict]) -> list[str]:
-        out = []
-        for q in qa_items:
-            try:
-                out.append(_ask(_GEN_SYS, f"ANSWER: {q['answer']}") or q["question"])
-            except Exception:                       # noqa: BLE001 — fall back to a real question
-                out.append(q["question"])
-        return out
+        return _pmap(one, qa_items, "generated")
     return gen
 
 
@@ -103,7 +119,7 @@ def judge_auc(texts: list[str], labels: np.ndarray) -> dict:
     if len(texts) > JUDGE_CAP:                      # subsample, seeded, class-balanced enough
         rng = np.random.default_rng(0)
         idx = np.sort(rng.choice(idx, JUDGE_CAP, replace=False))
-    scores = np.array([_score(texts[i]) for i in idx])
+    scores = np.array(_pmap(_score, [texts[i] for i in idx], "judged"))
     is_canary = (labels[idx] == 0).astype(int)      # judge should give canaries high P(probe)
     return {"auc": round(_auc(is_canary, scores), 4), "n_scored": int(len(idx)),
             "mean_score_real": round(float(scores[is_canary == 0].mean()), 3),

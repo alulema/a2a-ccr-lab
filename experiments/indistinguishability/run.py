@@ -114,23 +114,28 @@ def _load_cache() -> dict:
         return {}
 
 
-def embed_texts(texts: list[str]) -> np.ndarray:
+def embed_texts(texts: list[str], batch: int = 64) -> np.ndarray:
     """Embed with the REAL text-embedding-3-small (reusing ccrlib's managed-identity auth),
-    caching to a local file so the AUC is replayable. Requires AOAI to be configured."""
+    BATCHED (the embeddings API takes a list) and cached locally so the AUC is replayable.
+    Requires AOAI to be configured."""
     from ccrlib import embeddings as E
     if not E._use_aoai():
         raise SystemExit("This run needs real embeddings. Set AZURE_OPENAI_EMBEDDINGS_ENDPOINT "
                          "and _DEPLOYMENT (a hash backend would separate by keywords trivially).")
     cache = _load_cache()
-    vecs, dirty = [], False
-    for t in texts:
-        if t not in cache:
-            cache[t] = list(E._aoai_embed(t)); dirty = True
-        vecs.append(cache[t])
-    if dirty:
+    todo = [t for t in dict.fromkeys(texts) if t not in cache]   # unique, not-yet-cached
+    if todo:
+        client = E._aoai_client()
+        dep = os.environ["AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT"]
+        for i in range(0, len(todo), batch):
+            chunk = todo[i:i + batch]
+            resp = client.embeddings.create(model=dep, input=chunk)
+            for t, d in zip(chunk, resp.data):
+                cache[t] = list(d.embedding)
+            print(f"    embedded {min(i + batch, len(todo))}/{len(todo)} new", flush=True)
         with open(_EMB_CACHE, "w", encoding="utf-8") as f:
             json.dump(cache, f)
-    return np.asarray(vecs, dtype=float)
+    return np.asarray([cache[t] for t in texts], dtype=float)
 
 
 # ------------------------------------------------------ adversary 1: embedding classifier
@@ -155,7 +160,7 @@ def _auc(y: np.ndarray, score: np.ndarray) -> float:
     return (ranks[y == 1].sum() - npos * (npos + 1) / 2.0) / (npos * nneg)
 
 
-def _logreg_fit(X, y, l2, iters=400, lr=0.5):
+def _logreg_fit(X, y, l2, iters=250, lr=0.5):
     n, d = X.shape
     w = np.zeros(d); b = 0.0
     for _ in range(iters):
@@ -181,16 +186,29 @@ def cv_auc(X: np.ndarray, y: np.ndarray, folds=5, l2=1.0, seed=0) -> float:
     return _auc(y, scores)
 
 
-def classifier_verdict(X, y, perms=200, seed=0) -> dict:
+def _pca(X: np.ndarray, k: int) -> np.ndarray:
+    """Reduce to the top-k principal components (unsupervised, label-free -> no leakage). Keeps
+    the adversary a clean *linear probe on the dominant directions* and makes the per-fold
+    logistic regression well-posed (n >> p) and ~12x faster than full 1536-dim."""
+    k = min(k, X.shape[1], X.shape[0] - 1)
+    Xc = X - X.mean(0)
+    _, _, Vt = np.linalg.svd(Xc, full_matrices=False)
+    return Xc @ Vt[:k].T
+
+
+def classifier_verdict(X, y, perms=100, seed=0, k=128) -> dict:
     """Observed CV-AUC plus a label-PERMUTATION null: shuffle labels, recompute CV-AUC. If the
     observed AUC is inside the null band, the two sets are statistically indistinguishable to
-    this adversary (any apparent split was high-dim noise)."""
-    obs = cv_auc(X, y, seed=seed)
+    this adversary (any apparent split was high-dim noise). Classifier = L2 logistic regression
+    on the top-k principal components of the embeddings."""
+    Xr = _pca(X, k)
+    obs = cv_auc(Xr, y, seed=seed)
     rng = np.random.default_rng(seed + 1)
-    null = np.array([cv_auc(X, rng.permutation(y), seed=seed) for _ in range(perms)])
+    null = np.array([cv_auc(Xr, rng.permutation(y), seed=seed) for _ in range(perms)])
     p = float((null >= obs).mean())            # one-sided: is obs above the null?
-    return {"auc": round(obs, 4), "null_mean": round(float(null.mean()), 4),
-            "null_std": round(float(null.std()), 4), "p_value": round(p, 4),
+    return {"auc": round(obs, 4), "pca_k": int(min(k, X.shape[1], X.shape[0] - 1)),
+            "null_mean": round(float(null.mean()), 4), "null_std": round(float(null.std()), 4),
+            "p_value": round(p, 4),
             "distinguishable": bool(obs > null.mean() + 2 * null.std() and p < 0.05)}
 
 
@@ -209,21 +227,26 @@ def run(squad_path: str, n: int, perms: int) -> dict:
         judge_auc = None
 
     results = {}
+    use_judge = bool(os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT") and judge_auc)
     for strat in STRATEGIES:
+        print(f"\n[{strat}] building query sets ({n}/class)...", flush=True)
         texts, y = build_pair(qa, strat, n, llm_gen=llm_gen)
         if not texts:
-            print(f"[{strat}] skipped (needs chat deployment for llm_generated).")
+            print(f"[{strat}] skipped (needs chat deployment for llm_generated).", flush=True)
             continue
+        print(f"[{strat}] embedding {len(texts)} queries (batched)...", flush=True)
         X = embed_texts(texts)
+        print(f"[{strat}] embedding classifier + {perms}-permutation null...", flush=True)
         emb = classifier_verdict(X, y, perms=perms)
         row = {"n_per_class": n, "embedding_classifier": emb}
-        if os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT") and judge_auc:
+        if use_judge:
+            print(f"[{strat}] LLM judge (parallel)...", flush=True)
             row["llm_judge"] = judge_auc(texts, y)
         results[strat] = row
         j = row.get("llm_judge", {}).get("auc", "-")
         print(f"[{strat:13}] emb-AUC={emb['auc']:.3f} (null {emb['null_mean']:.3f}±{emb['null_std']:.3f}, "
               f"p={emb['p_value']:.3f}, {'DISTINGUISHABLE' if emb['distinguishable'] else 'indistinguishable'})"
-              f" | judge-AUC={j}")
+              f" | judge-AUC={j}", flush=True)
     out = os.path.join(HERE, "results.json")
     with open(out, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
@@ -292,7 +315,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--squad", help="path to a SQuAD-format JSON (e.g. dev-v1.1.json)")
     ap.add_argument("--n", type=int, default=400, help="queries per class (real / canary)")
-    ap.add_argument("--perms", type=int, default=200, help="label permutations for the null")
+    ap.add_argument("--perms", type=int, default=100, help="label permutations for the null")
     ap.add_argument("--selftest", action="store_true", help="verify the pipeline (no Azure/data)")
     a = ap.parse_args()
     if a.selftest:
