@@ -337,11 +337,15 @@ just in a single process).
   local via `az login` + DefaultAzureCredential; AOAI account `oai-mbsr5z56tjkhy`). Then
   `analyze.py --ci` and `lambda_r_sweep.py` with **`embedding` added to the baseline set**.
 - **Real embeddings changed the embedding baseline a lot:** incident 0.083→**0.000**,
-  success 0.52→0.556. Real semantic routing avoids the *crudely keyword-stuffed*
-  adversarial cards → zero incidents — making it the **strongest safety baseline**. So we
-  added it to the rq2/lambda_r/significance baseline sets (excluding it was no longer
-  honest). Caveat for the paper: this is contingent on naive adversary card-authoring; a
-  natural on-topic adversarial description would defeat semantic routing, whereas CCR's
+  success 0.52→0.556 — the strongest *apparent* safety baseline, so we added it to the
+  rq2/lambda_r/significance baseline sets (excluding it was no longer honest). **Devil's-
+  advocate (Task 1) verified the mechanism against the data:** the real embedding routes
+  **100% of tasks to the single `degraded` agent** (17280/17280, never any other) — its
+  zero incidents are an *artifact of fixation* on a benign nearest-neighbour card, not
+  adversary detection. (My earlier "avoids keyword-stuffed adversaries" was wrong;
+  corrected in all docs.) Caveat for the paper: safety is contingent on the adversary's
+  card wording (which it controls); a card worded as the nearest neighbour would draw 100%
+  of traffic → incident 1.0, whereas CCR's
   capability-probe is invariant to card wording.
 - **Final headline (V5_k0.2_mixed_I):** ccr 0.944/inc 0.139, optimistic 0.972/inc 0.722,
   embedding 0.556/inc 0.000, attestation 0.347/inc 0.451. CCR is the only policy high on
@@ -356,6 +360,21 @@ just in a single process).
   semantic routing with zero incidents) in its intended high-value region, with CIs and an
   honest account of where and why it loses. `paper/evidence-section.md` updated to these
   numbers (RQ1–RQ4, λ_r, Pareto) + the semantic-baseline contingency.
+
+### R12 — Devil's-advocate pass on the final results + paper figures
+- **Devil's advocate (verdict: clean, 1 fix).** Cross-checked every number in
+  `evidence-section.md` against the pasted script outputs — all consistent, no
+  hallucinations. (i) Re-verified the λ_r "exact by invariance" claim *post-#3*
+  (decision-coupled re-run, 0/24 violations — holds). (ii) **Caught one unsupported
+  inference:** I had claimed `embedding` avoids the keyword-stuffed adversaries; the data
+  shows it routes 100% to `degraded` (fixation), so its zero incidents are an artifact, not
+  detection — corrected in evidence-section (RQ1 + Pareto), README, REPRODUCE, R11.
+- **Figures (`analysis/figures.py`, matplotlib).** `fig_rq2_advantage` = V×κ heatmap of
+  CCR's net-utility advantage over the best baseline (winner annotated); `fig_lambda_r_
+  crossover` = CCR−best vs λ_r for the genuine crossover cells (those where the leading
+  baseline has *more* incidents than CCR; cells lost to a lower-incident baseline are
+  excluded, since they don't cross). Both render cleanly (verified). Figures git-ignored
+  (regenerated from the CSVs).
 
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,

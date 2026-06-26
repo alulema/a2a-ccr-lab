@@ -141,7 +141,7 @@ Validate the Bicep before deploying: `az bicep build --file infra/main.bicep`.
 - Canary representativeness vs cost is modeled abstractly via `κ` and the
   distinguishability flag; a real deployment must measure actual probe cost.
 - Success is a verifiable synthetic function; real tasks need task-specific oracles.
-- The `embedding` baseline's zero-incident result is contingent on adversaries being
-  *semantically* separable (naive keyword-stuffing); a sophisticated adversary with a
-  natural description would defeat semantic routing — but not CCR's capability-probe,
-  which is invariant to card wording.
+- The `embedding` baseline's zero-incident result is an **artifact**: with real vectors it
+  routes *every* task to the single nearest-description agent (a benign `degraded` one), so
+  it is safe only by accident of card wording — which the adversary controls. CCR's
+  capability-probe is invariant to card wording.

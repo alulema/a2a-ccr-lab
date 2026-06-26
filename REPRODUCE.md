@@ -107,8 +107,10 @@ python analysis/lambda_r_sweep.py
 ```
 
 With real embeddings, the `embedding` baseline becomes **success ≈ 0.556, incident
-0.000** in `V5_k0.2_mixed_I` (vs hash ≈ 0.52 / 0.083): real semantic routing steers away
-from the crudely keyword-stuffed adversarial cards. To return to the hermetic backend,
+0.000** in `V5_k0.2_mixed_I` (vs hash ≈ 0.52 / 0.083): with real vectors the policy routes
+*every* task to the single nearest-description agent (a benign `degraded` one) — zero
+incidents, but by fixation, not by detecting adversaries (see the contingency note in
+`paper/evidence-section.md`). To return to the hermetic backend,
 `unset AZURE_OPENAI_EMBEDDINGS_ENDPOINT AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT`.
 
 ---

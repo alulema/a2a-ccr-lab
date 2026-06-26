@@ -36,4 +36,6 @@ analysis/significance_*.csv
 analysis/lambda_r_sweep_*.csv
 analysis/lambda_r_crossover_*.csv
 analysis/sensitivity.csv
+analysis/fig_*.png
+analysis/fig_*.pdf
 infra/main.json

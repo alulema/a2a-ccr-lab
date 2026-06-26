@@ -67,10 +67,11 @@ canaries), CCR is the only policy that is **simultaneously high-success and low-
 
 Each baseline fails on at least one axis. `optimistic_fallback` reaches the highest
 success only by *executing* on agents until one works — touching a malicious agent on
-$72\%$ of tasks. `embedding` (real semantic routing) is the safest baseline, achieving
-**zero incidents** by steering toward honest-looking descriptions and away from the
-keyword-stuffed adversarial cards — but it completes only $56\%$ of tasks, because it has
-no way to tell a *capable* honest agent from a *degraded* one, and no probe. Strikingly,
+$72\%$ of tasks. `embedding` (real semantic routing) incurs
+**zero incidents** — but as an *artifact*: it routes **every** task to the single
+nearest-description agent (here the benign-but-mediocre `degraded` one), so it never
+touches a malicious agent *and* never reaches a *capable* one, completing only $56\%$ (we
+dissect this "safety by fixation" in the Pareto discussion). Strikingly,
 `attestation_only` / `card_only` now fail on **both** axes (success 0.35, incidents 0.45):
 identity verification gives **no signal** to separate a validly-signed defector from an
 honest provider when both declare the ceiling capability — the Provenance Paradox in full.
@@ -194,17 +195,22 @@ success-and-safety balance is irreplaceable. Choosing between the three frontier
 requires pricing an incident — which is exactly what the $\lambda_r$ sweep does, resolving
 it in CCR's favor across the high-value region.
 
-**The contingency of the semantic baseline.** `embedding`'s zero-incident showing deserves
-scrutiny, because it is the strongest safety competitor. It achieves it by routing away
-from the adversarial cards — which in our benchmark are *crudely keyword-stuffed* ("Best
-$X$ expert … guaranteed top quality"), and therefore embed *unlike* a genuine task. A
-sophisticated adversary that writes a natural, on-topic description would embed close to
-the honest agents and defeat semantic routing — whereas CCR's probe tests *capability*,
-not description, and is invariant to how well the card is written. `embedding`'s safety is
-thus contingent on naive adversary card-authoring; CCR's is not. We report `embedding`
-with real `text-embedding-3-small` vectors precisely so this comparison is honest rather
-than a strawman, and we flag the contingency as the limit of what a semantic baseline
-establishes.
+**The contingency of the semantic baseline.** `embedding`'s zero-incident showing is the
+strongest *apparent* safety result among the baselines, so it deserves scrutiny — and the
+routing logs make the mechanism unambiguous. With real `text-embedding-3-small` vectors the
+policy routes **100% of tasks to the single `degraded` agent** (its "High-throughput …
+service" card is the task's nearest neighbour) and selects **no other agent** — malicious
+or honest-capable — in any of the 17,280 runs. Its zero incidents are therefore an
+**artifact of fixation**: it happens to lock onto a *benign* card, so it never touches a
+malicious agent; it also never reaches a *capable* one, which is exactly why its success is
+only 0.556. Had the adversary worded its card to be the nearest neighbour instead, the same
+policy would route **every** task to it (incident → 1.0). So `embedding`'s safety is not a
+property of semantic routing — it is contingent on the adversary's card wording, which the
+adversary controls. CCR's probe tests *capability* by execution, not description
+similarity, and is invariant to card wording. We report `embedding` with real vectors (not
+a hash toy) precisely so this comparison is honest, and we read its result as the *limit*
+of what a description-only baseline can establish, not as evidence that semantic routing is
+safe.
 
 ## Distributed validation and threats to validity
 
