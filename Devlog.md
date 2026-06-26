@@ -399,6 +399,23 @@ just in a single process).
   bundled; results are inline / local). `_VALIDATION` cut to 4 headline cells. Kept: agent
   host, router, Storage (Flex requires it), App Insights, AOAI, RBAC. `az bicep build` passes.
 
+### R14 — Embedding reproducibility: live + cache + verify (keeps the real instance on the table)
+- **Concern:** a committed vector cache alone could be hand-crafted ("numbers I invented so
+  it fits"); a live AOAI run proves the numbers came from the real model. We want both.
+- **Design (`ccrlib/embeddings.py`), three modes by precedence:** (1) **live** — AOAI
+  configured → real `text-embedding-3-small` (the canonical, paper run), and each vector is
+  *recorded* to `data/embedding_cache.json`; (2) **cache replay** — AOAI unset but cache
+  present → exact numbers offline, no Azure; (3) **hash** fallback. The cache is a *recording*
+  of a live run, not a substitute.
+- **Anti-fabrication:** `python -m ccrlib.embeddings --verify` re-queries the live model and
+  confirms every cached vector still matches (cosine ≥ 1−1e-4) → committed vectors are
+  re-checkable, not invented. Embeddings are deterministic per model version (no sampling),
+  so the live run is reproducible-as-reported with deployment + api-version pinned.
+- **Cache write is best-effort** (succeeds locally to populate the committable file; no-op on
+  the read-only cloud app filesystem). `data/embedding_cache.json` is trackable (only
+  `data/results/` is git-ignored). Verified the 3 modes locally (hash / replay / verify-aborts-
+  without-AOAI) without touching `data/`. REPRODUCE.md §2 updated (2a live, 2b offline replay).
+
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
   n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.

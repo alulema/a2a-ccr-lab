@@ -77,11 +77,24 @@ honest world) and the decision-coupled `lambda_r` sweep.
 
 ---
 
-## 2. Real Azure OpenAI embeddings (optional — only the `embedding` baseline)
+## 2. The `embedding` baseline — live, cached, and verifiable
 
-Needed only to reproduce the `embedding` baseline with real semantic vectors. The
-subscription must have **Azure OpenAI access + `text-embedding-3-small` quota** in the
-region.
+Only the `embedding` baseline uses real vectors; everything else is hermetic (§1). It runs
+in three modes, by precedence (`ccrlib/embeddings.py`):
+- **live** — if the AOAI env vars are set, every vector comes from the real
+  `text-embedding-3-small` instance (the run the paper reports) and is *recorded* into
+  `data/embedding_cache.json`;
+- **cache replay** — if AOAI is unset but that cache exists, vectors are replayed from it:
+  the paper's exact embedding numbers, offline, no Azure, no model-version dependency;
+- **hash** — otherwise, the dependency-free fallback (§1).
+
+The cache is a *recording* of a live run, never a substitute: `python -m ccrlib.embeddings
+--verify` re-queries the live model and confirms the committed vectors still match, so they
+cannot be silently fabricated — a reviewer with AOAI access re-checks them. Embedding models
+are deterministic per model version (no sampling), so the live run is
+reproducible-as-reported with the deployment + api-version pinned.
+
+### 2a. Live run (canonical) — needs Azure OpenAI access + `text-embedding-3-small` quota
 
 ```bash
 pip install azure-identity openai
@@ -101,17 +114,28 @@ az role assignment create --assignee "$ME" --role "Cognitive Services OpenAI Use
 export AZURE_OPENAI_EMBEDDINGS_ENDPOINT="$(az cognitiveservices account list -g a2a-ccr-lab --query '[0].properties.endpoint' -o tsv)"
 export AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT="text-embedding-3-small"
 python -c "from ccrlib import embeddings; print(embeddings.backend())"   # must print: azure_openai
-python scripts/local_run.py --seeds 6 --tasks 24
+python scripts/local_run.py --seeds 6 --tasks 24    # live vectors; populates data/embedding_cache.json
 python analysis/analyze.py --ci
 python analysis/lambda_r_sweep.py
+
+# 2.4 The live run recorded data/embedding_cache.json. Confirm it faithfully records the
+#     live model, then commit it so anyone can replay the exact numbers offline:
+python -m ccrlib.embeddings --verify     # re-queries AOAI; {"ok": true} means cache == live
+git add data/embedding_cache.json        # commit the recorded vectors (provenance + replay)
 ```
 
 With real embeddings, the `embedding` baseline becomes **success ≈ 0.556, incident
 0.000** in `V5_k0.2_mixed_I` (vs hash ≈ 0.52 / 0.083): with real vectors the policy routes
 *every* task to the single nearest-description agent (a benign `degraded` one) — zero
 incidents, but by fixation, not by detecting adversaries (see the contingency note in
-`paper/evidence-section.md`). To return to the hermetic backend,
-`unset AZURE_OPENAI_EMBEDDINGS_ENDPOINT AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT`.
+`paper/evidence-section.md`).
+
+### 2b. Offline replay (no Azure)
+
+With `data/embedding_cache.json` committed and the AOAI env vars **unset**,
+`python scripts/local_run.py --seeds 6 --tasks 24` reproduces the paper's embedding numbers
+straight from the cache — `embeddings.backend()` prints `embedding_cache`. To force the pure
+hermetic (hash) backend instead, also remove/ignore the cache file.
 
 ---
 
