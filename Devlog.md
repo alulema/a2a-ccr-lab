@@ -340,7 +340,8 @@ just in a single process).
   success 0.52→0.556 — the strongest *apparent* safety baseline, so we added it to the
   rq2/lambda_r/significance baseline sets (excluding it was no longer honest). **Devil's-
   advocate (Task 1) verified the mechanism against the data:** the real embedding routes
-  **100% of tasks to the single `degraded` agent** (17280/17280, never any other) — its
+  **100% of tasks to a `degraded` provider** (the `northwind` agent of each skill — four
+  distinct agents; 17280/17280, never a malicious or capable persona; see R15) — its
   zero incidents are an *artifact of fixation* on a benign nearest-neighbour card, not
   adversary detection. (My earlier "avoids keyword-stuffed adversaries" was wrong;
   corrected in all docs.) Caveat for the paper: safety is contingent on the adversary's
@@ -416,16 +417,42 @@ just in a single process).
   `data/results/` is git-ignored). Verified the 3 modes locally (hash / replay / verify-aborts-
   without-AOAI) without touching `data/`. REPRODUCE.md §2 updated (2a live, 2b offline replay).
 
-## Status
-- **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
-  n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.
-- Full-grid signal (n=24) holds the thesis: at high value / low canary cost
-  (`V10_k0.05_mixed_I`) **CCR dominates** (net utility 8.3 vs ~4.8 baselines, incidents
-  0.125); CCR's advantage **requires indistinguishable canaries** — in `V3_k0.2_mixed_D`
-  (distinguishable) it collapses (net −2.4, incident 1.0); in a clean pool the canary
-  cost is pure overhead (optimistic_fallback edges it). Honest boundary conditions.
-- **Next:** V×kappa grid (R3) is coded in `_headline_conditions` — redeploy router, run
-  the grid (`tasks=24 seeds=3`, ~140s, n=72/cell), download `results/raw.json`, and
-  `analyze.py` emits the per-cell RQ2 winner surface. Then write up the crossover and the
-  fail-safe-baseline caveat (R1). `always-ready` on the agent host can be removed (pooling
-  made it unnecessary — saves cost).
+### R15 — Second devil's-advocate pass: full reproduction + precision fixes
+- **Method:** regenerated the entire factorial offline from the committed real-embedding
+  cache (`backend=embedding_cache`, bit-identical to the live AOAI run) and cross-checked
+  *every* number in `evidence-section.md`/`README`/`Devlog` against the freshly computed
+  data (103,680 runs).
+- **Verified EXACT (no hallucinations):** RQ1 table (all 18 values) + its 6 CIs (bootstrap
+  is seeded, `random.Random(20260624)`); RQ2 7/20 and high-value 12/12, sig 10/12; RQ3
+  0.556/0.986/3.05; RQ4 D 0.854/1.0/0.812, I 0.111/0.139/0.944; Pareto 36/40 and
+  112/80/50/40/0/0; λ_r 4 cells all-vs-optimistic, flips [2.45,3.35]; λ_r exactness
+  (decision-coupled residual 1.8e-15). **Fixation confirmed:** `embedding` chose
+  `{degraded: 17280}` of 17280 runs, 0 incidents.
+- **Fixes applied (precision/scope, not fabrication):**
+  1. **"single `degraded` agent" → corrected.** `embedding` fixates on **four** distinct
+     agents (`degr-{rag,planning,data_transform,api_action}-northwind-0`, one per skill,
+     each with its own card), not one. The substantive claim (always the `degraded`
+     persona, never malicious/capable → safety by fixation) holds. Reworded in
+     `evidence-section.md` (RQ1 + Pareto), `README.md` (threats), `REPRODUCE.md` (§2a).
+  2. **"median 3.08" → 2.90.** `lambda_r_sweep.py` reported `sorted(flips)[len//2]` (the
+     upper-middle), not the true median of {2.45,2.72,3.08,3.35}. Fixed to
+     `statistics.median` and updated `evidence-section.md`. Range [2.45,3.35] was correct.
+  3. **RQ3/RQ4 tables now name the representative cell** (V5, κ=0.2): the numbers were the
+     single-cell values, exact, but presented as if general.
+  4. **README:** removed the stale mention of `data`/`results` Storage containers (dropped
+     in R13; only `deploy-*` remain).
+- **Verdict: clean.** No invented numbers, no unsupported inferences; the thesis and all
+  central figures reproduce exactly. The only changes were tightening over-specific wording
+  and one mislabeled statistic.
+
+## Status (current — supersedes the cloud-bring-up snapshots in R1–R8)
+- **Evidence FINAL:** the canonical numbers are R11 (post tie-break #3 + real embeddings),
+  re-verified in R15; analysis via `analyze.py --ci`, `lambda_r_sweep.py`, `figures.py`.
+  Reproducibility is R14 (live + cache + verify). Earlier per-run numbers in R1–R8 are
+  **pre-fix** (explicitly retired by R9) — read R11/R15 as authoritative.
+- **Distributed path GREEN.** Router + agent host on Flex Consumption; D1–D4 resolved;
+  the observable demo (`/demo/compare` + App Insights + Mermaid) is R13. The cloud is a
+  *distributed validation* of the deterministic in-process numbers, not a separate result.
+- **Open items:** none blocking the lab. Paper-side work (integrate `evidence-section.md`,
+  related-work / 2026 prior-art positioning, embed final figures) is tracked outside this
+  log. `always-ready` on the agent host can be removed (pooling made it unnecessary).

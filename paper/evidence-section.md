@@ -68,10 +68,11 @@ canaries), CCR is the only policy that is **simultaneously high-success and low-
 Each baseline fails on at least one axis. `optimistic_fallback` reaches the highest
 success only by *executing* on agents until one works — touching a malicious agent on
 $72\%$ of tasks. `embedding` (real semantic routing) incurs
-**zero incidents** — but as an *artifact*: it routes **every** task to the single
-nearest-description agent (here the benign-but-mediocre `degraded` one), so it never
-touches a malicious agent *and* never reaches a *capable* one, completing only $56\%$ (we
-dissect this "safety by fixation" in the Pareto discussion). Strikingly,
+**zero incidents** — but as an *artifact*: it routes **every** task to a benign
+`degraded` provider (the `northwind` "High-throughput … service" agent of each skill,
+which is the task's nearest neighbour), so it never touches a malicious agent *and* never
+reaches a *capable* one, completing only $56\%$ (we dissect this "safety by fixation" in
+the Pareto discussion). Strikingly,
 `attestation_only` / `card_only` now fail on **both** axes (success 0.35, incidents 0.45):
 identity verification gives **no signal** to separate a validly-signed defector from an
 honest provider when both declare the ceiling capability — the Provenance Paradox in full.
@@ -115,7 +116,8 @@ Attestation verifies *identity*, not *current capability*. In the clean pool (ho
 agents only), the degraded provider is correctly signed but ships a stale card claiming
 ceiling capability, so `attestation_only` and `card_only` select it and fail
 ($\text{success}{=}0.556$). CCR's empirical probe detects the capability gap and routes to
-a genuinely capable agent ($\text{success}{=}0.986$, $U{=}3.05$), confirming that
+a genuinely capable agent ($\text{success}{=}0.986$, $U{=}3.05$ at $V{=}5$, $\kappa{=}0.2$;
+success is constant across clean cells), confirming that
 declarative evidence — even *verified* declarative evidence — is insufficient when
 capability drifts.
 
@@ -126,7 +128,7 @@ passes a probe it can *recognize* and then defects on the real task — the fail
 prior "lazy-peer" work does not capture. We model this adversary explicitly: it succeeds
 on a probe **iff it can tell the probe from a real task**, and otherwise performs at its
 true (low) capability. Under that model, making the canary indistinguishable removes its
-ability to selectively pass:
+ability to selectively pass (representative cell $V{=}5$, $\kappa{=}0.2$, mixed pool):
 
 | CCR canary | defection rate | incident rate | success |
 |---|---|---|---|
@@ -167,7 +169,7 @@ choice.)
 Across the indistinguishable hostile/mixed cells where a baseline out-scores CCR at
 $\lambda_r{=}2$ *despite more incidents* — **four cells, all won by `optimistic_fallback`**
 (incident $0.72$ vs CCR's $\approx0.15$) — CCR becomes the net-utility winner once an
-incident is priced at $\lambda_r^\star\in[2.45,\,3.35]$ (median $3.08$), only modestly
+incident is priced at $\lambda_r^\star\in[2.45,\,3.35]$ (median $2.90$), only modestly
 above the default. Crucially, the cells where CCR instead loses to `embedding` are **not**
 in this set: `embedding` wins them with *fewer* incidents (zero), so those losses are not
 pricing artifacts but the honest boundary where a zero-incident semantic router is
@@ -198,9 +200,10 @@ it in CCR's favor across the high-value region.
 **The contingency of the semantic baseline.** `embedding`'s zero-incident showing is the
 strongest *apparent* safety result among the baselines, so it deserves scrutiny — and the
 routing logs make the mechanism unambiguous. With real `text-embedding-3-small` vectors the
-policy routes **100% of tasks to the single `degraded` agent** (its "High-throughput …
-service" card is the task's nearest neighbour) and selects **no other agent** — malicious
-or honest-capable — in any of the 17,280 runs. Its zero incidents are therefore an
+policy routes **100% of tasks to a `degraded` provider** — the `northwind` "High-throughput
+… service" agent of each skill, which is the task's nearest neighbour (four distinct agents,
+one per skill, all the `degraded` persona) — and selects **no malicious or honest-capable
+agent** in any of the 17,280 runs. Its zero incidents are therefore an
 **artifact of fixation**: it happens to lock onto a *benign* card, so it never touches a
 malicious agent; it also never reaches a *capable* one, which is exactly why its success is
 only 0.556. Had the adversary worded its card to be the nearest neighbour instead, the same

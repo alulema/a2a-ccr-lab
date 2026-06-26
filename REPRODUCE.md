@@ -126,8 +126,9 @@ git add data/embedding_cache.json        # commit the recorded vectors (provenan
 
 With real embeddings, the `embedding` baseline becomes **success ≈ 0.556, incident
 0.000** in `V5_k0.2_mixed_I` (vs hash ≈ 0.52 / 0.083): with real vectors the policy routes
-*every* task to the single nearest-description agent (a benign `degraded` one) — zero
-incidents, but by fixation, not by detecting adversaries (see the contingency note in
+*every* task to a benign `degraded` provider (the `northwind` nearest-neighbour of each
+skill — always the `degraded` persona, four distinct agents) — zero incidents, but by
+fixation, not by detecting adversaries (see the contingency note in
 `paper/evidence-section.md`).
 
 ### 2b. Offline replay (no Azure)

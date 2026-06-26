@@ -32,6 +32,7 @@ import csv
 import json
 import os
 import re
+import statistics
 from collections import defaultdict
 from datetime import datetime
 
@@ -221,7 +222,7 @@ def main():
               f"base_inc={I[(c,b)]:.3f}  lambda_r*={ls if ls is not None else 'never(<=40)'}")
     if flips:
         print(f"\n-> Once an incident is priced at lambda_r* in [{min(flips)}, {max(flips)}] "
-              f"(median {sorted(flips)[len(flips)//2]}), CCR becomes the winner. The default "
+              f"(median {statistics.median(flips):.2f}), CCR becomes the winner. The default "
               f"lambda_r=2.0 simply under-prices a ~5x higher incident rate.")
     print("Note: L* are EXACT here — a decision-coupled re-run shows CCR's routing is "
           "invariant to lambda_r over [2,8] on this pool (canary separates capability from "

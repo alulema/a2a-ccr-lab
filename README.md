@@ -114,7 +114,9 @@ written to `analysis/SENSITIVITY.md`.
 steps — including the AOAI / real-embeddings path and teardown — are in
 [`REPRODUCE.md`](REPRODUCE.md) §2–§3. Provisions (see `infra/`):
 
-- **Storage** (keyless — managed identity only) with `data` + `results` containers.
+- **Storage** (keyless — managed identity only); only the Flex Consumption deployment
+  containers (`deploy-agents`/`deploy-router`) — the dataset ships bundled and results are
+  returned inline / kept locally, so no `data`/`results` blob containers.
 - **App Insights + Log Analytics** for tracing routing decisions and canary calls.
 - Two **Function Apps**, each on its own **Flex Consumption** plan:
   - `agents` — hosts every persona at `/agents/{id}/.well-known/agent-card.json` and
@@ -160,6 +162,7 @@ executes only on the verified agent. The same interaction shows up in **App Insi
   distinguishability flag; a real deployment must measure actual probe cost.
 - Success is a verifiable synthetic function; real tasks need task-specific oracles.
 - The `embedding` baseline's zero-incident result is an **artifact**: with real vectors it
-  routes *every* task to the single nearest-description agent (a benign `degraded` one), so
-  it is safe only by accident of card wording — which the adversary controls. CCR's
+  routes *every* task to a benign `degraded` provider (the `northwind` nearest-neighbour of
+  each skill — always the `degraded` persona, never a malicious or capable one), so it is
+  safe only by accident of card wording, which the adversary controls. CCR's
   capability-probe is invariant to card wording.
