@@ -132,6 +132,11 @@ def run_sweeps(tasks, seeds):
     for tau in [-0.2, 0.0, 0.1, 0.3, 0.6]:
         s = grid_advantage(base_specs, replace(BASE_PARAMS, voi_threshold=tau), tasks, seeds)
         results.append(("voi_threshold", tau, scenario.malice_fraction(base_specs), s))
+    # d0 ABLATION: the prior-doubt floor. With d0=0 a confident liar (card~0.99) looks
+    # certain and EVADES the canary, so CCR executes on it — incident rises to optimistic's.
+    for d0 in [0.0, 0.1, 0.3, 0.5]:
+        s = grid_advantage(base_specs, replace(BASE_PARAMS, voi_prior_doubt=d0), tasks, seeds)
+        results.append(("voi_prior_doubt", d0, scenario.malice_fraction(base_specs), s))
 
     # --- Method: lambda_r (price of an incident), DECISION-COUPLED ---
     # The router re-decides at each lambda_r (ccr's step-4 expected_utility ranking uses
@@ -186,6 +191,10 @@ def write_outputs(results):
             "Cuánto penaliza el costo del canary.")
     section("Método — voi_threshold (compuerta de verificación)", "voi_threshold",
             "τ alto ⇒ CCR verifica menos (menos overhead, menos cobertura).")
+    section("Método — voi_prior_doubt (piso de duda d₀, ablación)", "voi_prior_doubt",
+            "d₀=0 quita el piso: un mentiroso confiado (card≈0.99) parece certero y EVADE el "
+            "canary. Con d₀=0, CCR deja de verificar al defector confiado y su incidente sube "
+            "hacia el de optimistic_fallback (la tesis: una auto-declaración alta no es evidencia).")
     section("Método — lambda_r (precio del incidente, decision-coupled)", "lambda_r",
             "El router RE-DECIDE con cada lambda_r (su ranking usa expected_utility), a "
             "diferencia del repricing post-hoc de analysis/lambda_r_sweep.py. La ventaja "
@@ -211,11 +220,15 @@ def write_outputs(results):
                "El mentiroso de *firma inválida* (adversarial) lo filtra barato la atestación; solo el "
                "defector *firmado-válido* (canary_aware) requiere el canary — y es ahí donde CCR despega.")
     out.append(f"- CCR tiene ventaja media **positiva en la región** en **{region_pos}/{len(results)}** settings.")
-    out.append("- **Diseño validado:** el *piso de duda* en la VoI (`voi_prior_doubt`) hace que CCR "
-               "verifique al defector *confiado* (card≈0.99) en vez de ejecutar sobre él; por eso su "
-               "incidente cae muy por debajo de optimistic_fallback en la región. El residual proviene "
-               "de celdas de bajo V / κ alto donde verificar no compensa (economía correcta) y del "
-               "canary *distinguible* (ver RQ4). τ alto reduce cobertura; τ bajo la aumenta.")
+    d0_map = {v: s["ccr_incident"] for (sw, v, mf, s) in results if sw == "voi_prior_doubt"}
+    out.append("- **Diseño validado (ablación d₀):** el *piso de duda* en la VoI (`voi_prior_doubt`) "
+               "hace que CCR verifique al defector *confiado* (card≈0.99) en vez de ejecutar sobre él. "
+               f"Con d₀=0 el incidente de CCR en la región sube de {d0_map.get(0.3)} (d₀=0.3) a "
+               f"{d0_map.get(0.0)} (d₀=0) — sin el piso, deja de verificar al mentiroso confiado y lo "
+               "ejecuta, acercándose a optimistic_fallback (en la celda RQ1 V5_k0.2 lo iguala "
+               "exactamente: 0.72=0.72). El residual bajo d₀=0.3 proviene de celdas de "
+               "bajo V / κ alto donde verificar no compensa (economía correcta) y del canary "
+               "*distinguible* (ver RQ4). τ alto reduce cobertura; τ bajo la aumenta.")
     open(os.path.join(ROOT, "analysis", "SENSITIVITY.md"), "w", encoding="utf-8").write("\n".join(out))
     return csv_path
 
