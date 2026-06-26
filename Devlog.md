@@ -376,6 +376,29 @@ just in a single process).
   excluded, since they don't cross). Both render cleanly (verified). Figures git-ignored
   (regenerated from the CSVs).
 
+### R13 — The observable demo: `/demo/compare` + App Insights + Mermaid (Task 3)
+- **Why the cloud now earns its keep:** in `local_run.py` an "incident" is a label; over real
+  A2A an incident is a real HTTP POST shipping the task payload to a malicious agent —
+  *observable*. The demo makes the CCR-vs-no-CCR benefit visible to a newcomer.
+- **`POST /api/demo/compare`** (router): for one task over real A2A, runs `optimistic_fallback`
+  vs `ccr` (configurable), returns per policy the ordered A2A calls (agent, persona,
+  kind=canary|task, payload sent), the incident label, and a **Mermaid `sequenceDiagram`**.
+  Auto-picks the first of ≤8 tasks where the policies *differ* on incident (the teaching
+  case). Verified in-process: optimistic ships the REAL task to `canary_aware [MALICIOUS]`
+  (incident); CCR probes all candidates synthetically, then executes only on the verified
+  `correct` agent (no incident).
+- **App Insights enrichment:** router logs custom dims per call (policy/kind/targetAgent/
+  targetPersona/payload/isIncident); the agent host logs what it received (agentId/persona/
+  kind/payloadReceived) → Application Map + end-to-end transaction waterfall + a KQL filter
+  (`persona=='canary_aware' && kind=='task'`) show the incident on screen.
+- **Tooling choice:** App Insights (native) + Mermaid, **not** LangSmith/Langfuse — those
+  trace LLM generations/agent reasoning, of which this system has none (deterministic
+  SimAgents + one embedding call). Langfuse would only fit if the agents became real LLMs.
+- **Infra trim (Task-3 cleanup):** dropped the `data`/`results` blob containers + their app
+  settings + the `DATA_STORAGE_ACCOUNT` output + all blob code in the router (dataset ships
+  bundled; results are inline / local). `_VALIDATION` cut to 4 headline cells. Kept: agent
+  host, router, Storage (Flex requires it), App Insights, AOAI, RBAC. `az bicep build` passes.
+
 ## Status
 - **Distributed path GREEN.** `seeds=2 tasks=12` runs in ~15s (HTTP 200), 576 runs,
   n=24/cell, results persisted to `results/rows.json` + `raw.json`. D1–D4 all resolved.

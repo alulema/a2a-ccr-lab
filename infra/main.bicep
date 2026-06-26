@@ -51,6 +51,5 @@ output AZURE_LOCATION string = location
 output AZURE_RESOURCE_GROUP string = rg.name
 output AGENTS_BASE_URL string = resources.outputs.AGENTS_BASE_URL
 output ROUTER_BASE_URL string = resources.outputs.ROUTER_BASE_URL
-output DATA_STORAGE_ACCOUNT string = resources.outputs.DATA_STORAGE_ACCOUNT
 output SERVICE_AGENTS_NAME string = resources.outputs.SERVICE_AGENTS_NAME
 output SERVICE_ROUTER_NAME string = resources.outputs.SERVICE_ROUTER_NAME

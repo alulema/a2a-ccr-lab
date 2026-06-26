@@ -5,12 +5,13 @@ param location string
 param tags object
 param storageAccountName string
 
+// Only the Flex Consumption deployment packages: the dataset ships bundled in each app
+// and results are returned inline / live in data/results/ locally, so no data/results
+// containers are needed.
 @description('Blob containers to create.')
 param containers array = [
   'deploy-agents'   // Flex Consumption deployment package for the agent host
   'deploy-router'   // Flex Consumption deployment package for the router
-  'data'            // tasks.json + agents.json (seeded)
-  'results'         // experiment output
 ]
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {

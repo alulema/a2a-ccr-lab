@@ -54,10 +54,7 @@ module agentsApp 'modules/functionApp.bicep' = {
     appInsightsConnectionString: monitoring.outputs.connectionString
     maxInstanceCount: maxInstanceCount
     serviceTag: 'agents'
-    appSettings: [
-      { name: 'DATA_STORAGE_ACCOUNT', value: storage.outputs.name }
-      { name: 'DATA_CONTAINER', value: 'data' }
-    ]
+    appSettings: []  // dataset ships bundled (scripts/sync_lib); no Blob data dependency
   }
 }
 
@@ -75,9 +72,6 @@ module routerApp 'modules/functionApp.bicep' = {
     maxInstanceCount: maxInstanceCount
     serviceTag: 'router'
     appSettings: [
-      { name: 'DATA_STORAGE_ACCOUNT', value: storage.outputs.name }
-      { name: 'DATA_CONTAINER', value: 'data' }
-      { name: 'RESULTS_CONTAINER', value: 'results' }
       { name: 'AGENT_BASE_URL', value: 'https://${agentsApp.outputs.defaultHostName}/api' }
       // Real-embeddings variant of the `embedding` baseline (managed-identity auth).
       { name: 'AZURE_OPENAI_EMBEDDINGS_ENDPOINT', value: openai.outputs.endpoint }
@@ -115,7 +109,6 @@ module routerOpenaiRbac 'modules/openaiRbac.bicep' = {
   }
 }
 
-output DATA_STORAGE_ACCOUNT string = storage.outputs.name
 output SERVICE_AGENTS_NAME string = agentsApp.outputs.name
 output SERVICE_ROUTER_NAME string = routerApp.outputs.name
 output AGENTS_BASE_URL string = 'https://${agentsApp.outputs.defaultHostName}/api'

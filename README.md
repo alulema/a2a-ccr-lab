@@ -126,6 +126,24 @@ steps — including the AOAI / real-embeddings path and teardown — are in
 
 Validate the Bicep before deploying: `az bicep build --file infra/main.bicep`.
 
+### See the agents behave — `POST /api/demo/compare`
+
+The point of the cloud is that an **incident is real and observable**: a no-CCR router POSTs
+your task payload to a malicious agent; CCR sends only a synthetic canary. The demo makes
+this visible for one task over live A2A:
+
+```bash
+curl -s -X POST "${ROUTER_URL}/demo/compare?code=${KEY}" -H 'Content-Type: application/json' \
+  -d '{"pool":"mixed"}'    # auto-picks a task where CCR and no-CCR differ
+```
+
+It returns, per policy, the ordered A2A calls (agent, persona, canary vs REAL, payload) and a
+**Mermaid `sequenceDiagram`** you can paste into any Markdown viewer — `optimistic_fallback`
+ships the real task to a `[MALICIOUS]` agent (incident); `ccr` probes synthetically then
+executes only on the verified agent. The same interaction shows up in **App Insights**
+(Application Map, end-to-end transaction, and a KQL filter on
+`customDimensions.persona == 'canary_aware' and customDimensions.kind == 'task'`).
+
 ## Scaling to "irrefutable" size
 
 - **More agents:** raise `CORRECT_PER_SKILL`/add personas in `scripts/gen_dataset.py`,

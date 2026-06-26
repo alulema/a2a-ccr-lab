@@ -76,6 +76,14 @@ def a2a(req: func.HttpRequest) -> func.HttpResponse:
     if body.get("method") != "message/send":
         return _rpc_error(body.get("id"), -32601, "method not found")
     p = body.get("params", {})
+    # Observability: log what this agent received, tagged with its (hidden) persona, so the
+    # App Insights traces show a malicious agent getting a REAL task payload (an incident)
+    # vs only a synthetic canary. The router never sees this; it is for the demo/operator.
+    logging.info("agent %s received %s", agent.id, p.get("kind", "task"),
+                 extra={"custom_dimensions": {
+                     "agentId": agent.id, "persona": agent.persona,
+                     "kind": p.get("kind", "task"), "payloadReceived": p.get("payload"),
+                     "taskId": p.get("taskId")}})
     try:
         result = agent.execute({
             "kind": p.get("kind", "task"),
