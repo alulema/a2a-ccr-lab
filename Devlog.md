@@ -445,6 +445,32 @@ just in a single process).
   central figures reproduce exactly. The only changes were tightening over-specific wording
   and one mislabeled statistic.
 
+### R16 — Level-B: measuring canary indistinguishability (the central open problem)
+- **Why:** the paper assumes indistinguishability as an exogenous flag (§8.4) and names
+  *constructing a provably-indistinguishable canary against an adaptive adversary* as the open
+  problem (§10). R16 turns the flag into a **measurement**: `experiments/indistinguishability/`.
+- **Design:** in a QA (RAG) domain, build real-vs-canary query sets under 4 **construction
+  strategies** — `marked` (explicit probe markers), `templated` (keyword-bag), `llm_generated`
+  (chat model paraphrases a real-style question with a known answer), `dist_matched` (canary =
+  a held-out REAL labelled question). Two adversaries score them: (1) an **embedding
+  classifier** (text-embedding-3-small + cross-validated L2 logistic regression, ROC-AUC, with
+  a **label-permutation null** so high-dim spurious splits aren't mistaken for real ones), and
+  (2) an **LLM judge** (chat model scores P(probe); AUC). Metric: AUC≈0.5 = indistinguishable,
+  →1.0 = distinguishable.
+- **Honest framing baked in:** `dist_matched` is ≈0.5 *by construction* (same distribution) —
+  it shows the only provably-indistinguishable canary is a real task whose answer you happen to
+  know (needs labelled real traffic). The live question is how close `llm_generated`
+  (synthesized-but-disguised) gets to that 0.5 floor. A high AUC there is an honest negative
+  that *bounds* the property — exactly what §8.4/§10 want.
+- **Status:** harness built; `python run.py --selftest` green (classifier returns ~0.50 with a
+  matching permutation null on same-distribution data, ~1.00 on a genuine 3-dim shift; canary
+  shapes + the rank-AUC identity verified). Needs the NUC to run for real: Azure OpenAI
+  embeddings + a chat deployment + a SQuAD slice. `results.json` is committable (AUC numbers);
+  the vector cache + dataset + figure are git-ignored (re-run to reproduce). Decisions taken
+  with the user: **public QA dataset** + **both adversaries**.
+- **Next:** run on the NUC, then write a §8.8 "Constructing the canary: measured
+  indistinguishability" into the paper and downgrade §10's open problem to "characterized".
+
 ## Status (current — supersedes the cloud-bring-up snapshots in R1–R8)
 - **Evidence FINAL:** the canonical numbers are R11 (post tie-break #3 + real embeddings),
   re-verified in R15; analysis via `analyze.py --ci`, `lambda_r_sweep.py`, `figures.py`.

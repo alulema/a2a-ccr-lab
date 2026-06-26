@@ -39,3 +39,10 @@ analysis/sensitivity.csv
 analysis/fig_*.png
 analysis/fig_*.pdf
 infra/main.json
+
+# Level-B indistinguishability experiment: keep run.py/judge.py/README/requirements +
+# results.json (the AUC numbers); ignore the downloaded dataset and the (large) vector
+# cache, which are reproduced by re-running with Azure OpenAI.
+experiments/indistinguishability/data/
+experiments/indistinguishability/embcache.json
+experiments/indistinguishability/fig_*.png
