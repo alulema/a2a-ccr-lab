@@ -281,15 +281,19 @@ def demo_compare(req: func.HttpRequest) -> func.HttpResponse:
                       or tasks[int(body.get("taskIndex", 0)) % len(tasks)]]
     else:
         candidates = tasks[:8]
-    picked = None
+    # Prefer the TEACHING case — a no-CCR baseline incurs an incident that CCR avoids —
+    # over CCR's rare residual (a lucky defector beats the probe). Fall back to the first
+    # candidate. This only selects which task to *show*; aggregate rates are in RQ1.
+    picked = teaching = None
     for cand in candidates:
         results = [_trace_one(p, cand, cards, transport, persona, spec_by_id, params, seed, indist)
                    for p in policies]
         picked = picked or (cand, results)
-        if len({r["incident"] for r in results}) > 1:
-            picked = (cand, results)
+        inc = {r["policy"]: r["incident"] for r in results}
+        if inc.get("ccr") is False and any(v for k, v in inc.items() if k != "ccr"):
+            teaching = (cand, results)
             break
-    task, results = picked
+    task, results = teaching or picked
 
     return func.HttpResponse(json.dumps({
         "task": task["id"], "skill": task["skill"], "pool": pool_name, "V": V, "kappa": kappa,
