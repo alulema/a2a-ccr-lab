@@ -39,13 +39,19 @@ gradeable. If it stays well above 0.5, that is an honest negative that *bounds* 
 pip install -r requirements.txt
 
 # 1. Get a public QA dataset (real questions + known answers). SQuAD v1.1 dev:
+mkdir -p data
 curl -o data/dev-v1.1.json https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v1.1.json
 
 # 2. Embeddings (same resource as the embedding baseline):
 export AZURE_OPENAI_EMBEDDINGS_ENDPOINT="https://<your-aoai>.openai.azure.com/"
 export AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT="text-embedding-3-small"
 
-# 3. (optional, enables adversary #2) a chat deployment on the same resource:
+# 3. (optional, enables adversary #2) a chat deployment on the same resource.
+#    Find an available version:  az cognitiveservices account list-models -g <rg> -n <aoai> \
+#      --query "[?name=='gpt-4o-mini'].version" -o tsv
+#    az cognitiveservices account deployment create -g <rg> -n <aoai> \
+#      --deployment-name gpt-4o-mini --model-name gpt-4o-mini --model-version "2024-07-18" \
+#      --model-format OpenAI --sku-name Standard --sku-capacity 10
 export AZURE_OPENAI_CHAT_DEPLOYMENT="gpt-4o-mini"
 
 python run.py --squad data/dev-v1.1.json --n 400

@@ -16,6 +16,7 @@ Calls are bounded (JUDGE_CAP) so a run does not fan out to thousands of chat req
 from __future__ import annotations
 
 import os
+import re
 
 import numpy as np
 
@@ -46,12 +47,20 @@ def _chat():
     return _client
 
 
-def _ask(system: str, user: str, max_tokens: int = 40) -> str:
+def _ask(system: str, user: str, budget: int = 512) -> str:
+    """One chat turn. Robust to API shape differences: gpt-5/o-series reject a custom
+    `temperature` and use `max_completion_tokens` (and spend reasoning tokens, so the budget
+    must be generous); older models use `max_tokens`. We try the modern shape first, fall back
+    to the legacy one, and never pass temperature (default is fine and universally accepted)."""
     dep = os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT"]
-    r = _chat().chat.completions.create(
-        model=dep, temperature=0, max_tokens=max_tokens,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
-    return (r.choices[0].message.content or "").strip()
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+    for kw in ({"max_completion_tokens": budget}, {"max_tokens": budget}):
+        try:
+            r = _chat().chat.completions.create(model=dep, messages=msgs, **kw)
+            return (r.choices[0].message.content or "").strip()
+        except Exception:                           # noqa: BLE001 — try the other param shape
+            continue
+    return ""
 
 
 def make_generator():
@@ -66,13 +75,16 @@ def make_generator():
     return gen
 
 
+_NUM = re.compile(r"(?<![\d.])(0(?:\.\d+)?|1(?:\.0+)?|\.\d+)(?![\d])")
+
+
 def _score(text: str) -> float:
-    try:
-        raw = _ask(_JUDGE_SYS, text, max_tokens=8)
-        val = float(raw.split()[0].strip().rstrip("."))
-        return min(1.0, max(0.0, val))
-    except Exception:                               # noqa: BLE001
+    """P(query is a synthetic probe). Extract the first [0,1] number anywhere in the reply
+    (reasoning models may wrap the answer); default to 0.5 (no information) if none."""
+    m = _NUM.search(_ask(_JUDGE_SYS, text))
+    if not m:
         return 0.5
+    return min(1.0, max(0.0, float(m.group(1))))
 
 
 def _auc(y_pos: np.ndarray, score: np.ndarray) -> float:
