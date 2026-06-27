@@ -45,4 +45,6 @@ infra/main.json
 # cache, which are reproduced by re-running with Azure OpenAI.
 experiments/indistinguishability/data/
 experiments/indistinguishability/embcache.json
+experiments/indistinguishability/gen_cache.json
+experiments/indistinguishability/judge_cache.json
 experiments/indistinguishability/fig_*.png
