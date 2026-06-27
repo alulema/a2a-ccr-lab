@@ -83,35 +83,51 @@ def _chat():
     return _client
 
 
-def _ask(system: str, user: str, budget: int = 512) -> str:
-    """One chat turn. Robust to API shape differences: gpt-5/o-series reject a custom
-    `temperature` and use `max_completion_tokens` (and spend reasoning tokens, so the budget
-    must be generous); older models use `max_tokens`. We try the modern shape first, fall back
-    to the legacy one, and never pass temperature (default is fine and universally accepted)."""
+def _ask(system: str, user: str, budget: int = 2000) -> str:
+    """One chat turn, returning a NON-EMPTY reply or "".
+
+    gpt-5/o-series are REASONING models: they spend the token budget on hidden reasoning and
+    return EMPTY content if the cap is too small — which silently broke both the generator
+    (fell back to the real question) and the judge (defaulted to 0.5). So we force
+    `reasoning_effort=minimal` and a generous `max_completion_tokens`, fall back across API
+    shapes (older models reject those params and want `max_tokens`), never pass a custom
+    temperature, and accept only a non-empty reply."""
     dep = os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT"]
     msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
-    for kw in ({"max_completion_tokens": budget}, {"max_tokens": budget}):
+    for kw in ({"max_completion_tokens": budget, "reasoning_effort": "minimal"},
+               {"max_completion_tokens": budget},
+               {"max_tokens": budget}):
         try:
             r = _chat().chat.completions.create(model=dep, messages=msgs, **kw)
-            return (r.choices[0].message.content or "").strip()
-        except Exception:                           # noqa: BLE001 — try the other param shape
+            txt = (r.choices[0].message.content or "").strip()
+            if txt:
+                return txt
+        except Exception:                           # noqa: BLE001 — try the next API shape
             continue
     return ""
 
 
 # ------------------------------------------------------------------------- generator
 def make_generator():
+    def one(q: dict) -> str:
+        try:
+            return _ask(_GEN_SYS, f"ANSWER: {q['answer']}")
+        except Exception:                           # noqa: BLE001
+            return ""
+
     def gen(qa_items: list[dict]) -> list[str]:
         cache = _load(_GEN_CACHE)
         todo = [q for q in qa_items if q["qid"] not in cache]
         if todo:
-            def one(q):
-                try:
-                    return _ask(_GEN_SYS, f"ANSWER: {q['answer']}") or q["question"]
-                except Exception:                   # noqa: BLE001 — fall back to a real question
-                    return q["question"]
-            for q, g in zip(todo, _pmap(one, todo, "generated")):
-                cache[q["qid"]] = g
+            outs = _pmap(one, todo, "generated")
+            nfb = sum(1 for o in outs if not o)
+            for q, o in zip(todo, outs):
+                cache[q["qid"]] = o if o else q["question"]   # echo the real Q only on failure
+            if nfb:
+                print(f"      WARNING: generator returned empty -> fell back to the REAL question "
+                      f"for {nfb}/{len(todo)} ({100 * nfb / len(todo):.0f}%). Those canaries are "
+                      f"NOT synthetic — the llm_generated result would be invalid. Raise the "
+                      f"token budget / check reasoning_effort.", flush=True)
             _save(_GEN_CACHE, cache)
         return [cache[q["qid"]] for q in qa_items]
     return gen
@@ -121,13 +137,12 @@ def make_generator():
 _NUM = re.compile(r"(?<![\d.])(0(?:\.\d+)?|1(?:\.0+)?|\.\d+)(?![\d])")
 
 
-def _score_raw(text: str) -> float:
+def _score_raw(text: str):
     """P(query is a synthetic probe). Extract the first [0,1] number anywhere in the reply
-    (reasoning models may wrap the answer); default to 0.5 (no information) if none."""
+    (reasoning models may wrap the answer); return None if there is no parseable number, so the
+    caller can count abstentions instead of silently treating them as a real 0.5."""
     m = _NUM.search(_ask(_JUDGE_SYS, text))
-    if not m:
-        return 0.5
-    return min(1.0, max(0.0, float(m.group(1))))
+    return min(1.0, max(0.0, float(m.group(1)))) if m else None
 
 
 def _auc(y_pos: np.ndarray, score: np.ndarray) -> float:
@@ -170,8 +185,13 @@ def judge_auc(texts: list[str], labels: np.ndarray) -> dict:
     cache = _load(_SCORE_CACHE)
     todo = [t for t in dict.fromkeys(sel) if t not in cache]
     if todo:
-        for t, s in zip(todo, _pmap(_score_raw, todo, "judged")):
-            cache[t] = s
+        raw = _pmap(_score_raw, todo, "judged")
+        ndef = sum(1 for s in raw if s is None)
+        for t, s in zip(todo, raw):
+            cache[t] = 0.5 if s is None else s
+        if ndef:
+            print(f"      WARNING: judge gave no parseable score for {ndef}/{len(todo)} "
+                  f"({100 * ndef / len(todo):.0f}%) -> defaulted to 0.5.", flush=True)
         _save(_SCORE_CACHE, cache)
     scores = np.array([cache[t] for t in sel])
     is_canary = (labels[idx] == 0).astype(int)      # judge should give canaries high P(probe)
