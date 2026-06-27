@@ -25,7 +25,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 
 JUDGE_CAP = 200             # queries actually scored by the judge (subsampled, class-balanced)
-WORKERS = 12               # concurrent chat calls (reasoning models are slow per call)
+# Concurrency must stay UNDER the deployment's rate limit, or requests get 429'd and (after the
+# client's retries) come back empty -> silent fallback. 4 is safe for a sku-capacity~10 chat
+# deployment; raise INDIST_WORKERS if you provisioned more capacity.
+WORKERS = int(os.environ.get("INDIST_WORKERS", "4"))
 HERE = os.path.dirname(os.path.abspath(__file__))
 _GEN_CACHE = os.path.join(HERE, "gen_cache.json")     # qid -> generated canary question
 _SCORE_CACHE = os.path.join(HERE, "judge_cache.json")  # query text -> P(probe)
@@ -79,6 +82,8 @@ def _chat():
             azure_ad_token_provider=get_bearer_token_provider(
                 DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"),
             api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-10-21"),
+            max_retries=8,      # exponential backoff on 429/5xx — the real cause of empty replies
+            timeout=60.0,
         )
     return _client
 
