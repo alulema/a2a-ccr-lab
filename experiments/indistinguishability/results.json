@@ -4,16 +4,16 @@
     "embedding_classifier": {
       "auc": 1.0,
       "pca_k": 128,
-      "null_mean": 0.4991,
-      "null_std": 0.0285,
+      "null_mean": 0.4956,
+      "null_std": 0.029,
       "p_value": 0.0,
       "distinguishable": true
     },
     "llm_judge": {
-      "auc": 0.9649,
+      "auc": 0.9067,
       "n_scored": 150,
-      "mean_score_real": 0.409,
-      "mean_score_canary": 0.582
+      "mean_score_real": 0.442,
+      "mean_score_canary": 0.566
     }
   },
   "templated": {
@@ -21,50 +21,50 @@
     "embedding_classifier": {
       "auc": 1.0,
       "pca_k": 128,
-      "null_mean": 0.4936,
-      "null_std": 0.0253,
+      "null_mean": 0.4974,
+      "null_std": 0.0274,
       "p_value": 0.0,
       "distinguishable": true
     },
     "llm_judge": {
-      "auc": 0.964,
+      "auc": 0.8933,
       "n_scored": 150,
-      "mean_score_real": 0.457,
-      "mean_score_canary": 0.578
+      "mean_score_real": 0.517,
+      "mean_score_canary": 0.568
     }
   },
   "llm_generated": {
     "n_per_class": 400,
     "embedding_classifier": {
-      "auc": 0.9188,
+      "auc": 0.526,
       "pca_k": 128,
-      "null_mean": 0.5015,
-      "null_std": 0.0299,
-      "p_value": 0.0,
-      "distinguishable": true
+      "null_mean": 0.4976,
+      "null_std": 0.0271,
+      "p_value": 0.13,
+      "distinguishable": false
     },
     "llm_judge": {
-      "auc": 0.8606,
+      "auc": 0.7796,
       "n_scored": 150,
-      "mean_score_real": 0.451,
-      "mean_score_canary": 0.475
+      "mean_score_real": 0.531,
+      "mean_score_canary": 0.478
     }
   },
   "dist_matched": {
     "n_per_class": 400,
     "embedding_classifier": {
-      "auc": 0.9354,
+      "auc": 0.4948,
       "pca_k": 128,
-      "null_mean": 0.4992,
-      "null_std": 0.0275,
-      "p_value": 0.0,
-      "distinguishable": true
+      "null_mean": 0.4939,
+      "null_std": 0.028,
+      "p_value": 0.5,
+      "distinguishable": false
     },
     "llm_judge": {
-      "auc": 0.9046,
+      "auc": 0.8575,
       "n_scored": 150,
-      "mean_score_real": 0.451,
-      "mean_score_canary": 0.497
+      "mean_score_real": 0.465,
+      "mean_score_canary": 0.48
     }
   }
 }
