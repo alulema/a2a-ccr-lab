@@ -214,9 +214,15 @@ def classifier_verdict(X, y, perms=100, seed=0, k=128) -> dict:
 
 # ------------------------------------------------------------- orchestration / output
 def run(squad_path: str, n: int, perms: int) -> dict:
-    qa = load_qa(squad_path, limit=2 * n + 5)
+    # Load the WHOLE slice, then SHUFFLE before splitting. SQuAD is grouped by Wikipedia
+    # article, so an in-order split would make `reals` and `canaries` different TOPICS — the
+    # classifier would separate topic-block-A from block-B, not probe-from-real (this is what
+    # the dist_matched control caught). Shuffling makes both random samples of one distribution.
+    qa = load_qa(squad_path, limit=10 ** 9)
     if len(qa) < 2 * n:
         raise SystemExit(f"Need >= {2 * n} QA items, got {len(qa)} from {squad_path}.")
+    order = np.random.default_rng(0).permutation(len(qa))
+    qa = [qa[i] for i in order]
     llm_gen = None
     try:
         from judge import make_generator, judge_auc           # noqa: E402
