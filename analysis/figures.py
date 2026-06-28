@@ -87,17 +87,22 @@ def lambda_r_crossover():
 
     # Crossover (caveat-#2) cells: indistinguishable hostile/mixed where CCR TRAILS at
     # lambda_r=2 but OVERTAKES as the incident price rises (i.e. the best baseline at L=2
-    # has more incidents than CCR, so pricing them flips it). We deliberately exclude cells
-    # where CCR loses to a *fewer-incident* baseline (e.g. embedding): those never cross and
-    # are an honest loss, not an under-priced-incident artifact — they belong to RQ2/Pareto.
+    # has more incidents than CCR, so pricing them flips it). We focus on the realistic
+    # crossover region (lambda_r <= XCAP): under the FROZEN post-hoc reprice, at extreme
+    # lambda_r the zero-incident `embedding` baseline eventually re-overtakes CCR (CCR would
+    # re-route in reality — see the decision-coupled sweep, sec 8.5), which is not the flip
+    # this figure is about. So we test "crosses above 0 somewhere past lambda_r=2", not the
+    # endpoint value.
+    XCAP = 8.0
     cross = []
     for cond, rs in by.items():
         if not (cond.endswith("_I") and ("_hostile_" in cond or "_mixed_" in cond)):
             continue
-        rs.sort(key=lambda r: float(r["lambda_r"]))
+        rs = sorted((r for r in rs if float(r["lambda_r"]) <= XCAP),
+                    key=lambda r: float(r["lambda_r"]))
         y_at2 = float(min(rs, key=lambda r: abs(float(r["lambda_r"]) - 2.0))["ccr_minus_best"])
-        y_hi = float(rs[-1]["ccr_minus_best"])
-        if y_at2 < 0 and y_hi > 0:
+        y_above = max(float(r["ccr_minus_best"]) for r in rs if float(r["lambda_r"]) > 2.0)
+        if y_at2 < 0 and y_above > 0:        # trails at L=2, overtakes as the incident is priced
             cross.append((cond, rs))
     if not cross:
         print("No crossover cells — skipping lambda_r figure.")
