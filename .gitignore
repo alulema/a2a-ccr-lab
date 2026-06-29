@@ -48,3 +48,5 @@ experiments/indistinguishability/embcache.json
 experiments/indistinguishability/gen_cache.json
 experiments/indistinguishability/judge_cache.json
 experiments/indistinguishability/fig_*.png
+experiments/real_agents/chat_cache.json
+experiments/real_agents/data/
