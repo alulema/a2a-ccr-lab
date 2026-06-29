@@ -3,33 +3,33 @@
     "ccr": {
       "n": 40,
       "success_rate": 0.9,
-      "incident_rate": 0.4,
-      "defection_rate": 0.175,
-      "n_canary_aware_final": 10,
+      "incident_rate": 0.85,
+      "defection_rate": 0.125,
+      "n_canary_aware_final": 28,
       "mean_canaries": 4.0
     },
     "optimistic_fallback": {
       "n": 40,
-      "success_rate": 0.875,
-      "incident_rate": 0.475,
+      "success_rate": 0.925,
+      "incident_rate": 0.675,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 7,
+      "n_canary_aware_final": 22,
       "mean_canaries": 0.0
     },
     "attestation_only": {
       "n": 40,
       "success_rate": 0.675,
-      "incident_rate": 0.375,
+      "incident_rate": 0.45,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 15,
+      "n_canary_aware_final": 18,
       "mean_canaries": 0.0
     },
     "card_only": {
       "n": 40,
       "success_rate": 0.675,
-      "incident_rate": 0.375,
+      "incident_rate": 0.45,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 15,
+      "n_canary_aware_final": 18,
       "mean_canaries": 0.0
     },
     "random": {
@@ -37,7 +37,7 @@
       "success_rate": 0.725,
       "incident_rate": 0.325,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 5,
+      "n_canary_aware_final": 7,
       "mean_canaries": 0.0
     }
   },
@@ -45,17 +45,17 @@
     "D": {
       "n": 40,
       "success_rate": 0.9,
-      "incident_rate": 0.425,
-      "defection_rate": 0.25,
-      "n_canary_aware_final": 7,
+      "incident_rate": 0.8,
+      "defection_rate": 0.125,
+      "n_canary_aware_final": 26,
       "mean_canaries": 4.0
     },
     "I": {
       "n": 40,
       "success_rate": 0.9,
-      "incident_rate": 0.4,
-      "defection_rate": 0.175,
-      "n_canary_aware_final": 10,
+      "incident_rate": 0.85,
+      "defection_rate": 0.125,
+      "n_canary_aware_final": 28,
       "mean_canaries": 4.0
     }
   }
