@@ -334,7 +334,7 @@ just in a single process).
 ### R11 — Final numbers: post-#3 tie-break + real AOAI embeddings + embedding-in-baselines
 - **Run:** full 120-cell factorial via `local_run.py --seeds 6 --tasks 24` (n=144/cell)
   with the honest random tie-break (#3) AND real `text-embedding-3-small` vectors (#2,
-  local via `az login` + DefaultAzureCredential; AOAI account `oai-mbsr5z56tjkhy`). Then
+  local via `az login` + DefaultAzureCredential; AOAI account `oai-<token>`). Then
   `analyze.py --ci` and `lambda_r_sweep.py` with **`embedding` added to the baseline set**.
 - **Real embeddings changed the embedding baseline a lot:** incident 0.083→**0.000**,
   success 0.52→0.556 — the strongest *apparent* safety baseline, so we added it to the
