@@ -2,78 +2,86 @@
   "rq1": {
     "ccr": {
       "n": 40,
-      "success_rate": 0.85,
+      "success_rate": 0.925,
       "incident_rate": 0.175,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 3,
+      "n_canary_aware_final": 1,
       "mean_canaries": 4.0
     },
     "optimistic_fallback": {
       "n": 40,
-      "success_rate": 0.875,
-      "incident_rate": 0.675,
+      "success_rate": 0.925,
+      "incident_rate": 0.725,
       "defection_rate": 0.0,
       "n_canary_aware_final": 0,
       "mean_canaries": 0.0
     },
     "attestation_only": {
       "n": 40,
-      "success_rate": 0.325,
-      "incident_rate": 0.525,
+      "success_rate": 0.275,
+      "incident_rate": 0.55,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 21,
+      "n_canary_aware_final": 22,
       "mean_canaries": 0.0
     },
     "card_only": {
       "n": 40,
-      "success_rate": 0.325,
-      "incident_rate": 0.525,
+      "success_rate": 0.275,
+      "incident_rate": 0.55,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 21,
+      "n_canary_aware_final": 22,
       "mean_canaries": 0.0
     },
     "random": {
       "n": 40,
-      "success_rate": 0.725,
-      "incident_rate": 0.35,
+      "success_rate": 0.625,
+      "incident_rate": 0.45,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 6,
+      "n_canary_aware_final": 10,
       "mean_canaries": 0.0
     }
   },
   "rq4": {
     "D": {
       "n": 40,
-      "success_rate": 0.85,
-      "incident_rate": 0.75,
-      "defection_rate": 0.65,
+      "success_rate": 0.9,
+      "incident_rate": 0.825,
+      "defection_rate": 0.7,
       "n_canary_aware_final": 0,
       "mean_canaries": 4.0
     },
     "I": {
       "n": 40,
-      "success_rate": 0.85,
+      "success_rate": 0.925,
       "incident_rate": 0.175,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 3,
+      "n_canary_aware_final": 1,
       "mean_canaries": 4.0
     }
   },
   "limitation_C": {
     "ccr": {
       "n": 40,
-      "success_rate": 0.85,
-      "incident_rate": 0.75,
-      "defection_rate": 0.125,
-      "n_canary_aware_final": 24,
+      "success_rate": 0.925,
+      "incident_rate": 0.775,
+      "defection_rate": 0.0,
+      "n_canary_aware_final": 0,
       "mean_canaries": 4.0
     },
     "optimistic_fallback": {
       "n": 40,
-      "success_rate": 0.875,
-      "incident_rate": 0.675,
+      "success_rate": 0.925,
+      "incident_rate": 0.725,
       "defection_rate": 0.0,
-      "n_canary_aware_final": 21,
+      "n_canary_aware_final": 0,
+      "mean_canaries": 0.0
+    },
+    "attestation_only": {
+      "n": 40,
+      "success_rate": 0.725,
+      "incident_rate": 0.55,
+      "defection_rate": 0.0,
+      "n_canary_aware_final": 0,
       "mean_canaries": 0.0
     }
   }
