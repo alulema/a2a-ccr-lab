@@ -471,6 +471,64 @@ just in a single process).
 - **Next:** run on the NUC, then write a §8.8 "Constructing the canary: measured
   indistinguishability" into the paper and downgrade §10's open problem to "characterized".
 
+## 2026-06-27 — Real-LLM agent pilot (§8.10) and AISec 2026 packaging
+
+### R17 — Real-LLM agent pilot: the thesis on real models, and where it breaks (Limitation C)
+- **Why:** §8 is deterministic SimAgents; the standing question (and the user's real interest)
+  was whether the mechanism survives **real LLM agents** — and what it *cannot* catch. New
+  harness: `experiments/real_agents/` (gpt-5.4-mini agents over a SQuAD QA/RAG pool).
+- **The honesty problem, and the fix:** a safety-aligned model **resists** the malicious prompts
+  — in the first run the "adversarial" agent answered *helpfully* instead of exfiltrating and the
+  defector often didn't defect (CCR looked no better than optimistic). So we **do not rely on the
+  model being evil**: capability stays real LLM (correct/degraded *answer* with the model), but
+  the malicious *consequence* is **structural** (wrapper-enforced). An incident = the real payload
+  was delivered to an untrusted endpoint (recorded in the transcript); `degraded` answers
+  **without the context** (genuinely weaker). The lazy defector's *detection* is structural
+  (marker = the D/I condition), **justified by R16/§8.8** (a real LLM can't detect an
+  indistinguishable probe) — we do **not** claim the LLM reproduces the detection.
+- **Two threat models, on purpose:** (a) **lazy defector** = cooperate-iff-it-can-confirm-a-test
+  (the thesis' treacherous-turn adversary, caught by an indistinguishable canary); (b)
+  **competent covert** = a **valid-signed exfiltrator** that answers the canary *and* the real
+  task correctly yet exfiltrates the real payload. The first devil's-advocate pass caught that an
+  approximate "competent" agent conflated capability with malice, so we built a **clean** covert
+  exfiltrator (`build_pool_covert`).
+- **Findings (n=40, gpt-5.4-mini, one cached realization):**
+  - **RQ1/RQ4 hold on real LLMs:** CCR incident **0.175** (lowest; optimistic 0.725), success at
+    **parity** (0.925), `attestation_only` collapses (0.275/0.55 — the Provenance Paradox).
+    RQ4 D→I: defection **0.7→0.0**, incident 0.825→0.175.
+  - **Limitation C — CCR breaks under competent malice:** against the clean covert exfiltrator
+    CCR **flips best→worst**, incident **0.175→0.775**. It passes attestation (valid signature)
+    *and* the capability probe (correct answer), so CCR delegates and "succeeds" (0.925) **while
+    the real data is exfiltrated**. The probe sees **competence, not malice** — the empirical form
+    of the new Threats bullet ("the canary tests capability, not malice").
+- **What it establishes / doesn't:** real LLM *capability* + the reduction vs the
+  incompetent/lazy defector; and an **empirical** demonstration that a competent valid-signed
+  adversary defeats a capability probe (needs complementary controls: egress, provenance/receipts,
+  behavioral monitoring). The "harm" is **exposure** (delivery to an untrusted endpoint), not a
+  demonstrated malicious act by the model. Pilot scale: one model/domain, one realization, no
+  strong CIs; `degraded` only ~65% (the model knows SQuAD facts).
+- **Status:** ran on the NUC (`results.json` + `incidents.md`); numbers re-verified;
+  `chat_cache.json` git-ignored. Written into the paper as **§8.10** + a Threats bullet +
+  abstract/§10 scoping.
+- **Next:** scale the pilot (more models/domains/tasks, with CIs) — that is the **AAMAS** paper
+  (separate, future).
+
+### R18 — AISec 2026 submission: English LaTeX, double-blind, formatting
+- **Why:** the target venue is **AISec 2026** (ACM workshop, CCS-colocated; ≤10pp sigconf,
+  double-blind, GenAI declaration). Produced `paper/ccr-aisec2026.tex`, translated from the
+  Spanish canonical (`Paper.A2A.v0.3.md`, kept as a backup copy — **both** now carry §8.10).
+- **Double-blind:** anonymized artifact repo (Anonymous GitHub / 4open.science); redacted personal
+  identifiers from `Devlog.md`/README; `\documentclass[sigconf,anonymous,review]`.
+- **Scope honesty end-to-end:** Limitation C (capability ≠ malice) now stated in the abstract,
+  §8.10, Threats, and Conclusions; §10 future-work points to scaling the pilot.
+- **Formatting cleanup:** fixed digit-bolding in the §8.10 pilot table (`\textbf` in text mode —
+  `\mathbf` does not bold digits); made long inline literals breakable (`\allowbreak` in
+  `text-embedding-3-small`, `/.well-known/agent-card.json`); restructured the Reproducibility
+  `verbatim` (the two-column box is ~40 chars wide — switched to short command-only lines + prose,
+  and added `real_agents/run.py`); `\emergencystretch=2em` for the remaining minor overfull boxes.
+- **Status:** compiles on Overleaf (~8–9pp, under the 10pp limit — confirm the exact count on
+  recompile). Deadline **July 24**, notification **Sept 3**.
+
 ## Status (current — supersedes the cloud-bring-up snapshots in R1–R8)
 - **Evidence FINAL:** the canonical numbers are R11 (post tie-break #3 + real embeddings),
   re-verified in R15; analysis via `analyze.py --ci`, `lambda_r_sweep.py`, `figures.py`.
@@ -479,6 +537,13 @@ just in a single process).
 - **Distributed path GREEN.** Router + agent host on Flex Consumption; D1–D4 resolved;
   the observable demo (`/demo/compare` + App Insights + Mermaid) is R13. The cloud is a
   *distributed validation* of the deterministic in-process numbers, not a separate result.
-- **Open items:** none blocking the lab. Paper-side work (integrate `evidence-section.md`,
-  related-work / 2026 prior-art positioning, embed final figures) is tracked outside this
-  log. `always-ready` on the agent host can be removed (pooling made it unnecessary).
+- **Indistinguishability MEASURED (R16/§8.8):** harness ran on the NUC; the synthesized canary
+  fools the reasoning judge but a classifier detects it (AUC ~0.78), while a distribution-matched
+  canary is ~0.5 — §8.8 reports this and §10's open problem is downgraded to "characterized".
+- **Real-agent pilot DONE (R17/§8.10):** CCR reproduces RQ1/RQ4 on gpt-5.4-mini (incident 0.175),
+  but a competent valid-signed exfiltrator defeats it (0.175→0.775) — **Limitation C** documented.
+- **AISec 2026 submission PREPARED (R18):** English `ccr-aisec2026.tex`, anonymized, ~8–9pp,
+  Limitation C scoped end-to-end. Deadline July 24. The AAMAS paper (scaled real-agent study)
+  is separate/future.
+- **Open items:** none blocking the lab. `always-ready` on the agent host can be removed
+  (pooling made it unnecessary).
