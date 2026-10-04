@@ -471,7 +471,7 @@ just in a single process).
 - **Next:** run on the NUC, then write a §8.8 "Constructing the canary: measured
   indistinguishability" into the paper and downgrade §10's open problem to "characterized".
 
-## 2026-06-27 — Real-LLM agent pilot (§8.10) and AISec 2026 packaging
+## 2026-06-27 — Real-LLM agent pilot (§8.10) and paper packaging
 
 ### R17 — Real-LLM agent pilot: the thesis on real models, and where it breaks (Limitation C)
 - **Why:** §8 is deterministic SimAgents; the standing question (and the user's real interest)
@@ -510,15 +510,12 @@ just in a single process).
 - **Status:** ran on the NUC (`results.json` + `incidents.md`); numbers re-verified;
   `chat_cache.json` git-ignored. Written into the paper as **§8.10** + a Threats bullet +
   abstract/§10 scoping.
-- **Next:** scale the pilot (more models/domains/tasks, with CIs) — that is the **AAMAS** paper
-  (separate, future).
+- **Next:** scale the pilot (more models/domains/tasks, with CIs) — a separate, future study.
 
-### R18 — AISec 2026 submission: English LaTeX, double-blind, formatting
-- **Why:** the target venue is **AISec 2026** (ACM workshop, CCS-colocated; ≤10pp sigconf,
-  double-blind, GenAI declaration). Produced `paper/ccr-aisec2026.tex`, translated from the
-  Spanish canonical (`Paper.A2A.v0.3.md`, kept as a backup copy — **both** now carry §8.10).
-- **Double-blind:** anonymized artifact repo (Anonymous GitHub / 4open.science); redacted personal
-  identifiers from `Devlog.md`/README; `\documentclass[sigconf,anonymous,review]`.
+### R18 — Paper packaging: English LaTeX, double-blind, formatting
+- **Why:** produced the English LaTeX version of the paper, translated from the Spanish
+  canonical (`Paper.A2A.v0.3.md`, kept as a backup copy — **both** now carry §8.10).
+- **Double-blind:** anonymized artifact mirror; personal identifiers redacted from the repo docs.
 - **Scope honesty end-to-end:** Limitation C (capability ≠ malice) now stated in the abstract,
   §8.10, Threats, and Conclusions; §10 future-work points to scaling the pilot.
 - **Formatting cleanup:** fixed digit-bolding in the §8.10 pilot table (`\textbf` in text mode —
@@ -526,8 +523,6 @@ just in a single process).
   `text-embedding-3-small`, `/.well-known/agent-card.json`); restructured the Reproducibility
   `verbatim` (the two-column box is ~40 chars wide — switched to short command-only lines + prose,
   and added `real_agents/run.py`); `\emergencystretch=2em` for the remaining minor overfull boxes.
-- **Status:** compiles on Overleaf (~8–9pp, under the 10pp limit — confirm the exact count on
-  recompile). Deadline **July 24**, notification **Sept 3**.
 
 ## Status (current — supersedes the cloud-bring-up snapshots in R1–R8)
 - **Evidence FINAL:** the canonical numbers are R11 (post tie-break #3 + real embeddings),
@@ -542,8 +537,7 @@ just in a single process).
   canary is ~0.5 — §8.8 reports this and §10's open problem is downgraded to "characterized".
 - **Real-agent pilot DONE (R17/§8.10):** CCR reproduces RQ1/RQ4 on gpt-5.4-mini (incident 0.175),
   but a competent valid-signed exfiltrator defeats it (0.175→0.775) — **Limitation C** documented.
-- **AISec 2026 submission PREPARED (R18):** English `ccr-aisec2026.tex`, anonymized, ~8–9pp,
-  Limitation C scoped end-to-end. Deadline July 24. The AAMAS paper (scaled real-agent study)
-  is separate/future.
+- **Paper packaged (R18):** English LaTeX, anonymized, Limitation C scoped end-to-end. A scaled
+  real-agent study is separate/future.
 - **Open items:** none blocking the lab. `always-ready` on the agent host can be removed
   (pooling made it unnecessary).

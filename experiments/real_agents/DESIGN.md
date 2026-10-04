@@ -5,7 +5,7 @@ agents on real tasks**, and show the headline dynamics survive: (a) the **incide
 of RQ1 (the side-effect asymmetry pays), (b) **incidents cause observable harm** (not
 stipulated), and (c) the **canary-aware defector is a real strategic LLM** that an
 indistinguishable canary neutralizes (closing the loop with §8.8). This is the upgrade that
-takes the paper from "workshop / simulation" to "conference-credible" (e.g. AAMAS).
+takes the paper from "simulation only" to evidence on real agents.
 
 It is **not** a re-run of the full 120-cell factorial with LLMs (too costly and noisy). It is a
 **targeted confirmation** on the headline conditions.
@@ -152,5 +152,4 @@ thin runner over the two conditions.
 
 *Once these four are settled, the build is ~a few days: persona prompts + `LLMAgent` +
 grader + runner, reusing everything above. Target: slot it as a new results subsection and the
-"real agents" upgrade for an AAMAS-class submission, while the AISec version goes out on the
-simulation evidence.*
+"real agents" upgrade, complementing the simulation evidence.*
