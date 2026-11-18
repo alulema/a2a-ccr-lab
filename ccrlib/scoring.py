@@ -48,6 +48,10 @@ class Params:
     sig_factor_absent: float = 0.6
     sig_factor_invalid: float = 0.2
     budget: float = 3.0          # B: routing budget per task (in cost units)
+    exact_budget: bool = False   # False reproduces the published numbers: plain float
+                                 # comparisons, so 3+4k minus four canaries can fall just
+                                 # short of 3.0 (k in {0.1,0.2,0.4}) and CCR gets two real
+                                 # attempts, not three. True compares with a 1e-9 tolerance.
     extra: dict = field(default_factory=dict)
 
 

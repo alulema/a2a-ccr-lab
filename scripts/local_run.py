@@ -65,7 +65,7 @@ def pool_specs(all_specs: list[dict], pool: str) -> list[dict]:
     return out
 
 
-def make_conditions(all_specs: list[dict]) -> list[dict]:
+def make_conditions(all_specs: list[dict], exact_budget: bool = False) -> list[dict]:
     conditions = []
     for pool in POOLS:
         specs = pool_specs(all_specs, pool)
@@ -73,7 +73,7 @@ def make_conditions(all_specs: list[dict]) -> list[dict]:
             for kappa in KAPPAS:
                 for indist in INDIST:
                     budget = 4 * kappa + 3 * 1.0  # room for ~4 canaries + 3 real execs
-                    params = Params(value=V, canary_cost=kappa, budget=budget)
+                    params = Params(value=V, canary_cost=kappa, budget=budget, exact_budget=exact_budget)
                     name = f"V{int(V)}_k{kappa}_{pool}_{'I' if indist else 'D'}"
                     conditions.append({
                         "name": name, "specs": specs, "params": params,
@@ -100,6 +100,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--tasks", type=int, default=48)
+    ap.add_argument("--exact-budget", action="store_true",
+                    help="tolerant budget comparisons (corrected run; not the published numbers)")
     args = ap.parse_args()
 
     try:  # ensure UTF-8 console on Windows (arrows/accents in the report)
@@ -115,7 +117,7 @@ def main() -> None:
     json.dump(tasks, open(os.path.join(ROOT, "data", "tasks.json"), "w"), indent=2)
 
     seeds = list(range(args.seeds))
-    conditions = make_conditions(all_specs)
+    conditions = make_conditions(all_specs, args.exact_budget)
     print(f"Running {len(conditions)} conditions x {len(tasks)} tasks x {len(seeds)} seeds "
           f"x {len(PRIORITY)} policies ...")
     rows, raw = experiment.run(tasks, conditions, build_env, seeds, PRIORITY)

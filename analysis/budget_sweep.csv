@@ -1,0 +1,106 @@
+V,kappa,budget,affords,policy,success,incident,net_utility,canaries
+5.0,0.2,1.0,1 exec,attestation_only,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.0,1 exec,ccr,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.0,1 exec,embedding,0.5556,0,1.7778,0
+5.0,0.2,1.0,1 exec,optimistic_fallback,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.0,1 exec,random,0.5139,0.4097,0.75,0
+5.0,0.2,1.2,1 probe + 1 exec,attestation_only,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.2,1 probe + 1 exec,ccr,0.4514,0.3611,0.3347,1
+5.0,0.2,1.2,1 probe + 1 exec,embedding,0.5556,0,1.7778,0
+5.0,0.2,1.2,1 probe + 1 exec,optimistic_fallback,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.2,1 probe + 1 exec,random,0.5139,0.4097,0.75,0
+5.0,0.2,1.4,2 probes + 1 exec,attestation_only,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.4,2 probes + 1 exec,ccr,0.7014,0.1389,1.8292,2
+5.0,0.2,1.4,2 probes + 1 exec,embedding,0.5556,0,1.7778,0
+5.0,0.2,1.4,2 probes + 1 exec,optimistic_fallback,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.4,2 probes + 1 exec,random,0.5139,0.4097,0.75,0
+5.0,0.2,1.8,4 probes + 1 exec,attestation_only,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.8,4 probes + 1 exec,ccr,0.7014,0.1389,1.4292,4
+5.0,0.2,1.8,4 probes + 1 exec,embedding,0.5556,0,1.7778,0
+5.0,0.2,1.8,4 probes + 1 exec,optimistic_fallback,0.3472,0.4514,-0.1667,0
+5.0,0.2,1.8,4 probes + 1 exec,random,0.5139,0.4097,0.75,0
+5.0,0.2,2.0,2 execs,attestation_only,0.3472,0.4514,-0.1667,0
+5.0,0.2,2.0,2 execs,ccr,0.7014,0.1389,1.4292,4
+5.0,0.2,2.0,2 execs,embedding,0.5556,0,1.7778,0
+5.0,0.2,2.0,2 execs,optimistic_fallback,0.6528,0.7222,0.1667,0
+5.0,0.2,2.0,2 execs,random,0.5139,0.4097,0.75,0
+5.0,0.2,2.8,4 probes + 2 execs,attestation_only,0.3472,0.4514,-0.1667,0
+5.0,0.2,2.8,4 probes + 2 execs,ccr,0.9444,0.1389,2.3458,4
+5.0,0.2,2.8,4 probes + 2 execs,embedding,0.5556,0,1.7778,0
+5.0,0.2,2.8,4 probes + 2 execs,optimistic_fallback,0.6528,0.7222,0.1667,0
+5.0,0.2,2.8,4 probes + 2 execs,random,0.5139,0.4097,0.75,0
+5.0,0.2,3.8,default 3 + 4k,attestation_only,0.3472,0.4514,-0.1667,0
+5.0,0.2,3.8,default 3 + 4k,ccr,0.9931,0.1389,2.5333,4
+5.0,0.2,3.8,default 3 + 4k,embedding,0.5556,0,1.7778,0
+5.0,0.2,3.8,default 3 + 4k,optimistic_fallback,0.9722,0.7222,1.4167,0
+5.0,0.2,3.8,default 3 + 4k,random,0.5139,0.4097,0.75,0
+10.0,0.05,1.0,1 exec,attestation_only,0.3472,0.4514,1.5694,0
+10.0,0.05,1.0,1 exec,ccr,0.3472,0.4514,1.5694,0
+10.0,0.05,1.0,1 exec,embedding,0.5556,0,4.5556,0
+10.0,0.05,1.0,1 exec,optimistic_fallback,0.3472,0.4514,1.5694,0
+10.0,0.05,1.0,1 exec,random,0.5139,0.4097,3.3194,0
+10.0,0.05,1.05,1 probe + 1 exec,attestation_only,0.3472,0.4514,1.5694,0
+10.0,0.05,1.05,1 probe + 1 exec,ccr,0.4514,0.3611,2.7417,1
+10.0,0.05,1.05,1 probe + 1 exec,embedding,0.5556,0,4.5556,0
+10.0,0.05,1.05,1 probe + 1 exec,optimistic_fallback,0.3472,0.4514,1.5694,0
+10.0,0.05,1.05,1 probe + 1 exec,random,0.5139,0.4097,3.3194,0
+10.0,0.05,1.1,2 probes + 1 exec,attestation_only,0.3472,0.4514,1.5694,0
+10.0,0.05,1.1,2 probes + 1 exec,ccr,0.7014,0.1389,5.6361,2
+10.0,0.05,1.1,2 probes + 1 exec,embedding,0.5556,0,4.5556,0
+10.0,0.05,1.1,2 probes + 1 exec,optimistic_fallback,0.3472,0.4514,1.5694,0
+10.0,0.05,1.1,2 probes + 1 exec,random,0.5139,0.4097,3.3194,0
+10.0,0.05,1.2,4 probes + 1 exec,attestation_only,0.3472,0.4514,1.5694,0
+10.0,0.05,1.2,4 probes + 1 exec,ccr,0.7014,0.1389,5.5361,4
+10.0,0.05,1.2,4 probes + 1 exec,embedding,0.5556,0,4.5556,0
+10.0,0.05,1.2,4 probes + 1 exec,optimistic_fallback,0.3472,0.4514,1.5694,0
+10.0,0.05,1.2,4 probes + 1 exec,random,0.5139,0.4097,3.3194,0
+10.0,0.05,2.0,2 execs,attestation_only,0.3472,0.4514,1.5694,0
+10.0,0.05,2.0,2 execs,ccr,0.7014,0.1389,5.5361,4
+10.0,0.05,2.0,2 execs,embedding,0.5556,0,4.5556,0
+10.0,0.05,2.0,2 execs,optimistic_fallback,0.6528,0.7222,3.4306,0
+10.0,0.05,2.0,2 execs,random,0.5139,0.4097,3.3194,0
+10.0,0.05,2.2,4 probes + 2 execs,attestation_only,0.3472,0.4514,1.5694,0
+10.0,0.05,2.2,4 probes + 2 execs,ccr,0.9444,0.1389,7.6681,4
+10.0,0.05,2.2,4 probes + 2 execs,embedding,0.5556,0,4.5556,0
+10.0,0.05,2.2,4 probes + 2 execs,optimistic_fallback,0.6528,0.7222,3.4306,0
+10.0,0.05,2.2,4 probes + 2 execs,random,0.5139,0.4097,3.3194,0
+10.0,0.05,3.2,default 3 + 4k,attestation_only,0.3472,0.4514,1.5694,0
+10.0,0.05,3.2,default 3 + 4k,ccr,0.9931,0.1389,8.0986,4
+10.0,0.05,3.2,default 3 + 4k,embedding,0.5556,0,4.5556,0
+10.0,0.05,3.2,default 3 + 4k,optimistic_fallback,0.9722,0.7222,6.2778,0
+10.0,0.05,3.2,default 3 + 4k,random,0.5139,0.4097,3.3194,0
+2.0,0.05,1.0,1 exec,attestation_only,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.0,1 exec,ccr,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.0,1 exec,embedding,0.5556,0,0.1111,0
+2.0,0.05,1.0,1 exec,optimistic_fallback,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.0,1 exec,random,0.5139,0.4097,-0.7917,0
+2.0,0.05,1.05,1 probe + 1 exec,attestation_only,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.05,1 probe + 1 exec,ccr,0.4514,0.3611,-0.8694,1
+2.0,0.05,1.05,1 probe + 1 exec,embedding,0.5556,0,0.1111,0
+2.0,0.05,1.05,1 probe + 1 exec,optimistic_fallback,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.05,1 probe + 1 exec,random,0.5139,0.4097,-0.7917,0
+2.0,0.05,1.1,2 probes + 1 exec,attestation_only,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.1,2 probes + 1 exec,ccr,0.7014,0.1389,0.025,2
+2.0,0.05,1.1,2 probes + 1 exec,embedding,0.5556,0,0.1111,0
+2.0,0.05,1.1,2 probes + 1 exec,optimistic_fallback,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.1,2 probes + 1 exec,random,0.5139,0.4097,-0.7917,0
+2.0,0.05,1.2,4 probes + 1 exec,attestation_only,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.2,4 probes + 1 exec,ccr,0.7014,0.1389,-0.075,4
+2.0,0.05,1.2,4 probes + 1 exec,embedding,0.5556,0,0.1111,0
+2.0,0.05,1.2,4 probes + 1 exec,optimistic_fallback,0.3472,0.4514,-1.2083,0
+2.0,0.05,1.2,4 probes + 1 exec,random,0.5139,0.4097,-0.7917,0
+2.0,0.05,2.0,2 execs,attestation_only,0.3472,0.4514,-1.2083,0
+2.0,0.05,2.0,2 execs,ccr,0.7014,0.1389,-0.075,4
+2.0,0.05,2.0,2 execs,embedding,0.5556,0,0.1111,0
+2.0,0.05,2.0,2 execs,optimistic_fallback,0.6528,0.7222,-1.7917,0
+2.0,0.05,2.0,2 execs,random,0.5139,0.4097,-0.7917,0
+2.0,0.05,2.2,4 probes + 2 execs,attestation_only,0.3472,0.4514,-1.2083,0
+2.0,0.05,2.2,4 probes + 2 execs,ccr,0.9444,0.1389,0.1125,4
+2.0,0.05,2.2,4 probes + 2 execs,embedding,0.5556,0,0.1111,0
+2.0,0.05,2.2,4 probes + 2 execs,optimistic_fallback,0.6528,0.7222,-1.7917,0
+2.0,0.05,2.2,4 probes + 2 execs,random,0.5139,0.4097,-0.7917,0
+2.0,0.05,3.2,default 3 + 4k,attestation_only,0.3472,0.4514,-1.2083,0
+2.0,0.05,3.2,default 3 + 4k,ccr,0.9931,0.1389,0.1542,4
+2.0,0.05,3.2,default 3 + 4k,embedding,0.5556,0,0.1111,0
+2.0,0.05,3.2,default 3 + 4k,optimistic_fallback,0.9722,0.7222,-1.5,0
+2.0,0.05,3.2,default 3 + 4k,random,0.5139,0.4097,-0.7917,0

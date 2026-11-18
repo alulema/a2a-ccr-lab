@@ -13,6 +13,24 @@ just in a single process).
 
 ---
 
+## 2026-11-18 — ICITS camera-ready: binding budget, calibration, float rounding
+
+- **Reviewer asked for scarce budgets.** As published, CCR's gate probes while `B >= kappa` and,
+  with a tight B, spends it all on canaries and never executes (V=5, kappa=0.2, B<=1.4: success 0).
+  Fix: reserve one real execution before probing. Default results unchanged byte for byte
+  (raw.jsonl sha 442c083). `scripts/budget_sweep.py`: two probes + one execution (B=1.4) already
+  give incident 0.139 and the best net utility (1.83 vs embedding 1.78); four probes + one
+  execution is worse than two (the gate is greedy and does not trade a probe for a fallback).
+- **Calibration** (`analysis/calibration.py`): p_hat is a score, not a probability (ECE 0.22,
+  overconfident) but ranks success (AUC 0.65 vs 0.21 for the card); Risk ranks malice at AUC 0.82
+  (mixed), 0.90 (hostile). The VoI gate fires for every top-k candidate at the defaults.
+- **Float rounding found while adding the reserve:** `3 + 4*kappa` minus four canaries < 3.0 for
+  kappa in {0.1, 0.2, 0.4}, so CCR had two real attempts there, not three. Author decision: keep
+  the published numbers (conservative for CCR) and disclose; `exact_budget` / `--exact-budget`
+  gives the corrected run. Deltas in REPRODUCE.md section 1c.
+
+---
+
 ## 2026-06-23 — Bringing up the distributed run on Flex Consumption
 
 ### D1 — Deployment outputs read as `null` → published to an app named "null"

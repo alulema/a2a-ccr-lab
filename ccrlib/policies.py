@@ -104,6 +104,13 @@ def _canary_call(ctx: Context, agent_id: str) -> tuple[float, int, dict]:
     return cs, resp["latencyMs"], resp
 
 
+_EPS = 1e-9  # float tolerance for budget comparisons when Params.exact_budget is set
+
+
+def _tol(p) -> float:
+    return _EPS if p.exact_budget else 0.0
+
+
 def _candidates(ctx: Context) -> list[str]:
     return [aid for aid, c in ctx.cards.items() if scoring.hard_compatible(c, ctx.task)]
 
@@ -182,7 +189,7 @@ def optimistic_fallback(ctx: Context) -> Decision:
     budget = p.budget
     attempt = 0
     for a in order:
-        if budget < p.exec_cost:
+        if budget < p.exec_cost - _tol(p):
             break
         ok, lat = _real_call(ctx, a, attempt)
         d.real_attempts.append(a)
@@ -222,7 +229,10 @@ def ccr(ctx: Context) -> Decision:
     for a in sorted(topk, key=base_risk, reverse=True):
         cs0 = scoring.card_score(ctx.cards[a], ctx.task, p)
         voi = scoring.value_of_information(cs0, base_risk(a), p)
-        if voi > p.voi_threshold and budget >= p.canary_cost:
+        # Reserve one real execution: probing must never consume the budget the
+        # delegation itself needs (with a tight B the gate would otherwise spend it
+        # all on canaries and never execute). Never binds at the default B=3+4*kappa.
+        if voi > p.voi_threshold and budget - p.canary_cost >= p.exec_cost - _tol(p):
             cs, lat, _ = _canary_call(ctx, a)
             canary_cs[a] = cs
             canary_passed[a] = cs >= 0.5
@@ -248,7 +258,7 @@ def ccr(ctx: Context) -> Decision:
     # 5. delegate real task; budget-bounded fallback to the next-best by utility.
     attempt = 0
     for a in plan:
-        if budget < p.exec_cost:
+        if budget < p.exec_cost - _tol(p):
             break
         ok, lat = _real_call(ctx, a, attempt)
         d.real_attempts.append(a)

@@ -75,6 +75,25 @@ Writes `analysis/SENSITIVITY.md` + `analysis/sensitivity.csv`. Includes the `cla
 sweep (CCR's advantage should grow monotonically with card unreliability and vanish in an
 honest world) and the decision-coupled `lambda_r` sweep.
 
+## 1c. Binding budget, calibration, and the float-rounding note (ICITS camera-ready)
+
+```bash
+python scripts/budget_sweep.py        # CCR when only 1-2 probes are affordable -> analysis/budget_sweep.csv
+python analysis/calibration.py        # are p_hat and Risk calibrated? (Brier, ECE, AUC)
+python scripts/local_run.py --seeds 6 --tasks 24 --exact-budget   # corrected-rounding run (not the published one)
+```
+
+- **Execution reserve.** CCR probes only while `B - kappa >= c_exec`, so a tight budget buys fewer
+  canaries instead of leaving nothing to execute the task. It never binds at the default
+  `B = 3 + 4*kappa`: the published run reproduces byte for byte with it.
+- **Float rounding (published numbers kept).** With plain float comparisons, `3 + 4*kappa` minus
+  four canaries falls just short of `3.0` for `kappa in {0.1, 0.2, 0.4}`, so CCR gets two real
+  attempts instead of three there. This only handicaps CCR. `--exact-budget` removes it: headline
+  success 0.944 -> 0.993 (CI [0.979, 1.000], still overlapping optimistic fallback), incident
+  unchanged at 0.139; RQ2 7/20 -> 8/20; paired significance 10/12 -> 11/12; lambda_r* [2.45, 3.35] ->
+  [3.08, 3.35]; distinguishable-canary success 0.812 -> 0.972; some hostile cells' CCR incident
+  0.194 -> 0.215. The budget sweep always uses exact comparisons.
+
 ---
 
 ## 2. The `embedding` baseline — live, cached, and verifiable
